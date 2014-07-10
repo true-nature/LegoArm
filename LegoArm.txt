@@ -1,6 +1,6 @@
 Configuration	LegoArm
 STM32CubeMX 	4.3.0
-Date	07/07/2014
+Date	07/10/2014
 MCU	STM32F303VCTx
 
 
@@ -70,13 +70,13 @@ SOFTWARE PROJECT
 Project Settings : 
 Project Name : LegoArm
 Project Folder : C:\Users\gama\Documents\STM32CubeMX\LegoArm
-Toolchain / IDE : 
-Firmware Package Name and Version : 
+Toolchain / IDE : MDK-ARM 4.73
+Firmware Package Name and Version : STM32Cube FW_F3 V1.0.0
 
 
 Code Generation Settings : 
 STM32Cube Firmware Library Package : Copy all used libraries into the project folder
-Generate peripheral initialization as a pair of '.c/.h' files per IP : No
+Generate peripheral initialization as a pair of '.c/.h' files per IP : Yes
 Backup previously generated files when re-generating : No
 Delete previously generated files when not re-generated : Yes
 Set all free pins as analog (to optimize the power consumption) : No

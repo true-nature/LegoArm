@@ -1,5 +1,8 @@
 #MicroXplorer Configuration settings - do not modify
-#Wed Jul 09 21:59:56 JST 2014
+#Thu Jul 10 21:54:50 JST 2014
+FREERTOS.IPParameters=configUSE_PREEMPTION,configUSE_TIMERS
+FREERTOS.configUSE_PREEMPTION=1
+FREERTOS.configUSE_TIMERS=1
 File.Version=4
 I2C1.IPParameters=Timing-I2C
 I2C1.Timing-I2C=0x2000090E
@@ -61,7 +64,7 @@ Mcu.Pin8=PA0
 Mcu.Pin9=PA5
 Mcu.PinsNb=37
 Mcu.UserName=STM32F303VCTx
-NVIC.PriorityGroup=NVIC_PRIORITYGROUP_0
+NVIC.PriorityGroup=NVIC_PRIORITYGROUP_4
 NVIC.SysTick_IRQn=true\:0\:0
 NVIC.USB_LP_CAN_RX0_IRQn=true\:0\:0
 PA0.GPIOParameters=GPIO_PuPd,GPIO_Label,GPIO_Mode
