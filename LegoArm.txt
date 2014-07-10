@@ -1,0 +1,92 @@
+Configuration	LegoArm
+STM32CubeMX 	4.3.0
+Date	07/07/2014
+MCU	STM32F303VCTx
+
+
+
+PERIPHERALS	MODES	FUNCTIONS	PINS
+I2C1	I2C	I2C1_SCL	PB6
+I2C1	I2C	I2C1_SDA	PB7
+I2C2	I2C	I2C2_SCL	PA9
+I2C2	I2C	I2C2_SDA	PA10
+RCC	Crystal/Ceramic Resonator	RCC_OSC_IN	PF0-OSC_IN
+RCC	Crystal/Ceramic Resonator	RCC_OSC_OUT	PF1-OSC_OUT
+RCC	Crystal/Ceramic Resonator	RCC_OSC32_IN	PC14-OSC32_IN
+RCC	Crystal/Ceramic Resonator	RCC_OSC32_OUT	PC15-OSC32_OUT
+SPI1	Full-Duplex Master	SPI1_MISO	PA6
+SPI1	Full-Duplex Master	SPI1_MOSI	PA7
+SPI1	Full-Duplex Master	SPI1_SCK	PA5
+SYS	Trace Asynchronous Sw	SYS_JTCK-SWCLK	PA14
+SYS	Trace Asynchronous Sw	SYS_JTMS-SWDIO	PA13
+SYS	Trace Asynchronous Sw	SYS_JTDO-TRACESWO	PB3
+TIM2	Internal Clock	TIM2_VS_ClockSourceINT	VP_TIM2_VS_ClockSourceINT
+TIM2	PWM Generation CH1	TIM2_CH1	PA15
+TIM3	Internal Clock	TIM3_VS_ClockSourceINT	VP_TIM3_VS_ClockSourceINT
+TIM3	Output Compare No Output	TIM3_VS_no_output1	VP_TIM3_VS_no_output1
+USB	Device (FS)	USB_DM	PA11
+USB	Device (FS)	USB_DP	PA12
+
+
+
+Pin Nb	PINs	FUNCTIONs
+1	PE2	GPXTI2
+2	PE3	GPIO_Output
+3	PE4	GPXTI4
+4	PE5	GPXTI5
+8	PC14-OSC32_IN	RCC_OSC32_IN
+9	PC15-OSC32_OUT	RCC_OSC32_OUT
+12	PF0-OSC_IN	RCC_OSC_IN
+13	PF1-OSC_OUT	RCC_OSC_OUT
+23	PA0	GPIO_Input
+30	PA5	SPI1_SCK
+31	PA6	SPI1_MISO
+32	PA7	SPI1_MOSI
+39	PE8	GPIO_Output
+40	PE9	GPIO_Output
+41	PE10	GPIO_Output
+42	PE11	GPIO_Output
+43	PE12	GPIO_Output
+44	PE13	GPIO_Output
+45	PE14	GPIO_Output
+46	PE15	GPIO_Output
+68	PA9	I2C2_SCL
+69	PA10	I2C2_SDA
+70	PA11	USB_DM
+71	PA12	USB_DP
+72	PA13	SYS_JTMS-SWDIO
+76	PA14	SYS_JTCK-SWCLK
+77	PA15	S_TIM2_CH1_ETR
+89	PB3	SYS_JTDO-TRACESWO
+92	PB6	I2C1_SCL
+93	PB7	I2C1_SDA
+97	PE0	GPXTI0
+98	PE1	GPXTI1
+
+
+
+SOFTWARE PROJECT
+
+Project Settings : 
+Project Name : LegoArm
+Project Folder : C:\Users\gama\Documents\STM32CubeMX\LegoArm
+Toolchain / IDE : 
+Firmware Package Name and Version : 
+
+
+Code Generation Settings : 
+STM32Cube Firmware Library Package : Copy all used libraries into the project folder
+Generate peripheral initialization as a pair of '.c/.h' files per IP : No
+Backup previously generated files when re-generating : No
+Delete previously generated files when not re-generated : Yes
+Set all free pins as analog (to optimize the power consumption) : No
+
+
+Toolchains Settings : 
+Compiler Optimizations : Balanced Size/Speed
+
+
+
+
+
+
