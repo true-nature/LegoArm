@@ -42,8 +42,13 @@
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
-/* Exported cariables --------------------------------------------------------*/
+/* Exported variables --------------------------------------------------------*/
 extern USBD_CDC_ItfTypeDef  USBD_Interface_fops_FS;
+/* Send Data over USB CDC are stored in this buffer       */
+extern uint8_t UserTxBufferFS[];
+/* Received Data over USB are stored in this buffer       */
+extern uint8_t UserRxBufferFS[];
+extern volatile uint32_t CDC_RxLen;
 
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */

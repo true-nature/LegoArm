@@ -84,10 +84,10 @@
 /* It's up to user to redefine and/or remove those define */
 /* Received Data over USB are stored in this buffer       */
 uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
+volatile uint32_t CDC_RxLen;
 
 /* Send Data over USB CDC are stored in this buffer       */
 uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
-
   /* USER CODE END 3 */
 
 /* USB handler declaration */
@@ -238,7 +238,8 @@ static int8_t CDC_Control_FS  (uint8_t cmd, uint8_t* pbuf, uint16_t length)
   */
 static int8_t CDC_Receive_FS (uint8_t* Buf, uint32_t *Len)
 {
-  /* USER CODE BEGIN 7 */ 
+  /* USER CODE BEGIN 7 */
+ CDC_RxLen = *Len;	
   return (USBD_OK);
   /* USER CODE END 7 */ 
 }
@@ -258,7 +259,7 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
 {
   uint8_t result = USBD_OK;
   /* USER CODE BEGIN 8 */ 
-  USBD_CDC_SetTxBuffer(hUsbDevice_0, UserTxBufferFS, Len);   
+  USBD_CDC_SetTxBuffer(hUsbDevice_0, Buf, Len);   
   result = USBD_CDC_TransmitPacket(hUsbDevice_0);
   /* USER CODE END 8 */ 
   return result;

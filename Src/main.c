@@ -39,6 +39,7 @@
 #include "spi.h"
 #include "tim.h"
 #include "usb_device.h"
+#include "usbd_cdc_if.h"
 #include "gpio.h"
 
 /* Private variables ---------------------------------------------------------*/
@@ -155,6 +156,13 @@ static void StartThread(void const * argument) {
   for(;;)
   {
     osDelay(1);
+		// VCP EchoBack
+		if (CDC_RxLen > 0) {
+			memcpy(UserTxBufferFS, UserRxBufferFS, CDC_RxLen);
+			CDC_Transmit_FS(UserTxBufferFS, CDC_RxLen);
+			CDC_RxLen = 0;
+		}
+		//check received length, read UserRxBufferFS
   }
 
   /* USER CODE END 5 */ 
