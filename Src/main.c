@@ -143,6 +143,34 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
+struct {
+	GPIO_TypeDef* GPIOx;
+	uint16_t GPIO_Pin;
+} GpioLedMap[8] = {
+	{GPIOE, GPIO_PIN_9},		/* LD3 */
+	{GPIOE, GPIO_PIN_8},		/* LD4 */
+	{GPIOE, GPIO_PIN_15},		/* LD6 */
+	{GPIOE, GPIO_PIN_14},		/* LD8 */
+	{GPIOE, GPIO_PIN_13},		/* LD10 */
+	{GPIOE, GPIO_PIN_12},		/* LD9 */
+	{GPIOE, GPIO_PIN_11},		/* LD7 */
+	{GPIOE, GPIO_PIN_10},		/* LD5 */
+};
+
+/**
+ * @brief Set LD3 to LE10 state according to ascii code.
+ * @param ch: ascii code
+ * @retval None
+ */
+static void AsciiToLed(uint8_t ch)
+{
+	for (int i = 0; i < 8; i++) {
+		GPIO_PinState state = ((ch >> i) & 1 ? GPIO_PIN_SET : GPIO_PIN_RESET);
+		
+		HAL_GPIO_WritePin(GpioLedMap[i].GPIOx, GpioLedMap[i].GPIO_Pin, state);
+	}
+}
+
 /* USER CODE END 4 */
 
 static void StartThread(void const * argument) {
@@ -159,6 +187,7 @@ static void StartThread(void const * argument) {
 		// VCP EchoBack
 		if (CDC_RxLen > 0) {
 			memcpy(UserTxBufferFS, UserRxBufferFS, CDC_RxLen);
+			AsciiToLed(UserTxBufferFS[0]);
 			CDC_Transmit_FS(UserTxBufferFS, CDC_RxLen);
 			CDC_RxLen = 0;
 		}
