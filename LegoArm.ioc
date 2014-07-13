@@ -1,5 +1,5 @@
 #MicroXplorer Configuration settings - do not modify
-#Fri Jul 11 05:12:33 JST 2014
+#Sun Jul 13 15:21:48 JST 2014
 FREERTOS.IPParameters=configUSE_PREEMPTION,configUSE_TIMERS
 FREERTOS.configUSE_PREEMPTION=1
 FREERTOS.configUSE_TIMERS=1
@@ -9,7 +9,7 @@ I2C1.Timing-I2C=0x2000090E
 I2C2.I2C_Speed_Mode-I2C=I2C_Fast
 I2C2.IPParameters=I2C_Speed_Mode-I2C,Timing-I2C
 I2C2.Timing-I2C=0x0000020B
-KeepUserPlacement=true
+KeepUserPlacement=false
 Mcu.Family=STM32F3
 Mcu.IP0=FREERTOS
 Mcu.IP1=I2C1
