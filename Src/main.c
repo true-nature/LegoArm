@@ -45,6 +45,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN 0 */
+volatile osMessageQId RcvBoxId;
+static uint16_t idxTxBuffer = 0;
 
 /* USER CODE END 0 */
 
@@ -81,6 +83,8 @@ int main(void)
   MX_TIM3_Init();
 
   /* USER CODE BEGIN 2 */
+	osMessageQDef(RcvBox, 2, uint32_t);
+	RcvBoxId = osMessageCreate(osMessageQ(RcvBox), NULL);
 
   /* USER CODE END 2 */
 
@@ -166,7 +170,6 @@ static void AsciiToLed(uint8_t ch)
 {
 	for (int i = 0; i < 8; i++) {
 		GPIO_PinState state = ((ch >> i) & 1 ? GPIO_PIN_SET : GPIO_PIN_RESET);
-		
 		HAL_GPIO_WritePin(GpioLedMap[i].GPIOx, GpioLedMap[i].GPIO_Pin, state);
 	}
 }
@@ -180,16 +183,21 @@ static void StartThread(void const * argument) {
 
   /* USER CODE BEGIN 5 */
  
+	osEvent evt;
+	UsbUserBufferDef *rxBufPtr, *txBufPtr;
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    evt = osMessageGet(RcvBoxId, osWaitForever);
 		// VCP EchoBack
-		if (CDC_RxLen > 0) {
-			memcpy(UserTxBufferFS, UserRxBufferFS, CDC_RxLen);
-			AsciiToLed(UserTxBufferFS[0]);
-			CDC_Transmit_FS(UserTxBufferFS, CDC_RxLen);
-			CDC_RxLen = 0;
+		if (evt.status == osEventMessage) {
+			rxBufPtr =  &UsbUserRxBuffer[evt.value.v];
+			txBufPtr = &UsbUserTxBuffer[idxTxBuffer];
+			memcpy(txBufPtr->Buffer, rxBufPtr->Buffer, rxBufPtr->Length);
+			txBufPtr->Length = rxBufPtr->Length;
+			AsciiToLed(txBufPtr->Buffer[0]);
+			CDC_Transmit_FS(txBufPtr->Buffer, rxBufPtr->Length);
+			idxTxBuffer = (idxTxBuffer + 1) % TX_BUFFER_COUNT;
 		}
 		//check received length, read UserRxBufferFS
   }

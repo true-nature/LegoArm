@@ -83,11 +83,12 @@
 /* Create buffer for reception and transmission           */
 /* It's up to user to redefine and/or remove those define */
 /* Received Data over USB are stored in this buffer       */
-uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
-volatile uint32_t CDC_RxLen;
+
+UsbUserBufferDef UsbUserRxBuffer[RX_BUFFER_COUNT];
+static uint32_t idxRxBuffer = 0;
 
 /* Send Data over USB CDC are stored in this buffer       */
-uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
+UsbUserBufferDef UsbUserTxBuffer[TX_BUFFER_COUNT];
   /* USER CODE END 3 */
 
 /* USB handler declaration */
@@ -128,8 +129,8 @@ static int8_t CDC_Init_FS(void)
   hUsbDevice_0 = &hUsbDeviceFS;
   /* USER CODE BEGIN 4 */ 
   /* Set Application Buffers */
-  USBD_CDC_SetTxBuffer(hUsbDevice_0, UserTxBufferFS, 0);
-  USBD_CDC_SetRxBuffer(hUsbDevice_0, UserRxBufferFS);
+  USBD_CDC_SetTxBuffer(hUsbDevice_0, UsbUserTxBuffer[0].Buffer, 0);
+  USBD_CDC_SetRxBuffer(hUsbDevice_0, UsbUserRxBuffer[idxRxBuffer].Buffer);
   return (USBD_OK);
   /* USER CODE END 4 */ 
 }
@@ -239,7 +240,13 @@ static int8_t CDC_Control_FS  (uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS (uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 7 */
- CDC_RxLen = *Len;	
+	osStatus status = osOK;
+  UsbUserRxBuffer[idxRxBuffer].Length = *Len;
+  status = osMessagePut(RcvBoxId, idxRxBuffer, 0);
+  idxRxBuffer = (idxRxBuffer + 1) % RX_BUFFER_COUNT;
+	if (status == osOK) {
+			USBD_CDC_SetRxBuffer(hUsbDevice_0, UsbUserRxBuffer[idxRxBuffer].Buffer);
+	}
   return (USBD_OK);
   /* USER CODE END 7 */ 
 }

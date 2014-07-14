@@ -39,16 +39,27 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_cdc.h"
+#include "cmsis_os.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported variables --------------------------------------------------------*/
 extern USBD_CDC_ItfTypeDef  USBD_Interface_fops_FS;
+/* USER CODE BEGIN 1 */
+
+#define RX_BUFFER_COUNT	2
+#define TX_BUFFER_COUNT	2
+typedef struct {
+	volatile uint32_t Length;
+	uint8_t Buffer[CDC_DATA_HS_MAX_PACKET_SIZE];
+} UsbUserBufferDef;
 /* Send Data over USB CDC are stored in this buffer       */
-extern uint8_t UserTxBufferFS[];
+extern UsbUserBufferDef UsbUserTxBuffer[];
 /* Received Data over USB are stored in this buffer       */
-extern uint8_t UserRxBufferFS[];
-extern volatile uint32_t CDC_RxLen;
+extern UsbUserBufferDef UsbUserRxBuffer[];
+
+extern volatile osMessageQId  RcvBoxId;
+/* USER CODE END 1 */
 
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
