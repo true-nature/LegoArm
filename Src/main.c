@@ -83,7 +83,7 @@ int main(void)
   MX_TIM3_Init();
 
   /* USER CODE BEGIN 2 */
-	osMessageQDef(RcvBox, 2, uint32_t);
+ 	osMessageQDef(RcvBox, RX_BUFFER_COUNT, uint32_t);
 	RcvBoxId = osMessageCreate(osMessageQ(RcvBox), NULL);
 
   /* USER CODE END 2 */
@@ -191,7 +191,7 @@ static void StartThread(void const * argument) {
     evt = osMessageGet(RcvBoxId, osWaitForever);
 		// VCP EchoBack
 		if (evt.status == osEventMessage) {
-			rxBufPtr =  &UsbUserRxBuffer[evt.value.v];
+			rxBufPtr = evt.value.p;
 			txBufPtr = &UsbUserTxBuffer[idxTxBuffer];
 			memcpy(txBufPtr->Buffer, rxBufPtr->Buffer, rxBufPtr->Length);
 			txBufPtr->Length = rxBufPtr->Length;

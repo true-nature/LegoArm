@@ -242,10 +242,10 @@ static int8_t CDC_Receive_FS (uint8_t* Buf, uint32_t *Len)
   /* USER CODE BEGIN 7 */
 	osStatus status = osOK;
   UsbUserRxBuffer[idxRxBuffer].Length = *Len;
-  status = osMessagePut(RcvBoxId, idxRxBuffer, 0);
-  idxRxBuffer = (idxRxBuffer + 1) % RX_BUFFER_COUNT;
+  status = osMessagePut(RcvBoxId, (uint32_t)&UsbUserRxBuffer[idxRxBuffer], 0);
 	if (status == osOK) {
-			USBD_CDC_SetRxBuffer(hUsbDevice_0, UsbUserRxBuffer[idxRxBuffer].Buffer);
+		idxRxBuffer = (idxRxBuffer + 1) % RX_BUFFER_COUNT;
+		USBD_CDC_SetRxBuffer(hUsbDevice_0, UsbUserRxBuffer[idxRxBuffer].Buffer);
 	}
   return (USBD_OK);
   /* USER CODE END 7 */ 
