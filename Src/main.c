@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : main.c
-  * Date               : 10/07/2014 21:55:08
+  * Date               : 15/07/2014 23:14:36
   * Description        : Main program body
   ******************************************************************************
   *
@@ -39,12 +39,13 @@
 #include "spi.h"
 #include "tim.h"
 #include "usb_device.h"
-#include "usbd_cdc_if.h"
 #include "gpio.h"
 
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN 0 */
+#include "usbd_cdc_if.h"
+#include "usbd_cdc_buf.h"
 volatile osMessageQId RcvBoxId;
 static uint16_t idxTxBuffer = 0;
 
