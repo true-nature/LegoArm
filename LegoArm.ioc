@@ -1,5 +1,5 @@
 #MicroXplorer Configuration settings - do not modify
-#Tue Jul 15 23:14:31 JST 2014
+#Wed Jul 16 20:44:31 JST 2014
 FREERTOS.IPParameters=configUSE_PREEMPTION,configUSE_TIMERS
 FREERTOS.configUSE_PREEMPTION=1
 FREERTOS.configUSE_TIMERS=1
@@ -64,7 +64,7 @@ Mcu.PinsNb=35
 Mcu.UserName=STM32F303VCTx
 NVIC.PriorityGroup=NVIC_PRIORITYGROUP_4
 NVIC.SysTick_IRQn=true\:0\:0
-NVIC.USB_LP_CAN_RX0_IRQn=true\:12\:0
+NVIC.USB_LP_CAN_RX0_IRQn=true\:5\:0
 PA0.GPIOParameters=GPIO_PuPd,GPIO_Label,GPIO_Mode
 PA0.GPIO_Label=B1 [Blue PushButton]
 PA0.GPIO_Mode=GPIO_MODE_INPUT
