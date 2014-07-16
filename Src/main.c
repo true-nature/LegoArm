@@ -44,9 +44,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN 0 */
-#include "usbd_cdc_if.h"
 #include "usbd_cdc_buf.h"
-volatile osMessageQId RcvBoxId;
+osMessageQId RcvBoxId;
 static uint16_t idxTxBuffer = 0;
 
 /* USER CODE END 0 */

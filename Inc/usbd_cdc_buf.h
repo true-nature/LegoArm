@@ -34,6 +34,7 @@
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __USBD_CDC_BUF_H
 #define __USBD_CDC_BUF_H
+#include "usbd_cdc_if.h"
 
 #define RX_BUFFER_COUNT	2
 #define TX_BUFFER_COUNT	2
@@ -46,6 +47,6 @@ extern UsbUserBufferDef UsbUserTxBuffer[];
 /* Received Data over USB are stored in this buffer       */
 extern UsbUserBufferDef UsbUserRxBuffer[];
 
-extern volatile osMessageQId  RcvBoxId;
+extern osMessageQId  RcvBoxId;
 
 #endif /* __USBD_CDC_BUF_H */
