@@ -147,6 +147,15 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
+#define MAX_LINE_LENGTH 128
+#define MAX_CMD_BUF_COUNT	3
+typedef struct {
+	volatile uint32_t Length;
+	uint8_t Buffer[MAX_LINE_LENGTH];
+} CommandBufferDef;
+CommandBufferDef CmdBuf[MAX_CMD_BUF_COUNT];
+static uint16_t currentCmdIdx;
+
 struct {
 	GPIO_TypeDef* GPIOx;
 	uint16_t GPIO_Pin;
@@ -174,6 +183,46 @@ static void AsciiToLed(uint8_t ch)
 	}
 }
 
+
+static void PrintStr(char *str, uint32_t len)
+{
+	UsbUserBufferDef *txBufPtr = &UsbUserTxBuffer[idxTxBuffer];
+	memcpy(txBufPtr->Buffer, str, len);
+	txBufPtr->Length = len;
+	CDC_Transmit_FS(txBufPtr->Buffer, len);
+	idxTxBuffer = (idxTxBuffer + 1) % TX_BUFFER_COUNT;
+}
+
+#define BS_CHR_ECHO	"\b \b"
+
+static void ParseInputChars(UsbUserBufferDef *rxPtr)
+{
+	uint8_t *p = &rxPtr->Buffer[0];
+	uint8_t *tail = &rxPtr->Buffer[rxPtr->Length];
+	CommandBufferDef *cmdBufPtr = &CmdBuf[currentCmdIdx];
+	while (p < tail) {
+		switch (*p) {
+			case '\n':
+				// execute command
+			  currentCmdIdx = (currentCmdIdx + 1 ) % MAX_CMD_BUF_COUNT;
+				cmdBufPtr = &CmdBuf[currentCmdIdx];
+				cmdBufPtr->Length = 0;
+				break;
+			case '\b':
+				if (cmdBufPtr->Length > 0) {
+					cmdBufPtr->Length--;
+					PrintStr(BS_CHR_ECHO, strlen(BS_CHR_ECHO));
+				}
+				break;
+			default:
+				AsciiToLed(*p);
+				cmdBufPtr->Buffer[cmdBufPtr->Length] = *p;
+				cmdBufPtr->Length++;
+				PrintStr((void *)p, 1);
+		}
+	}
+}
+
 /* USER CODE END 4 */
 
 static void StartThread(void const * argument) {
@@ -184,7 +233,7 @@ static void StartThread(void const * argument) {
   /* USER CODE BEGIN 5 */
  
 	osEvent evt;
-	UsbUserBufferDef *rxBufPtr, *txBufPtr;
+	UsbUserBufferDef *rxBufPtr;
   /* Infinite loop */
   for(;;)
   {
@@ -192,12 +241,7 @@ static void StartThread(void const * argument) {
 		// VCP EchoBack
 		if (evt.status == osEventMessage) {
 			rxBufPtr = evt.value.p;
-			txBufPtr = &UsbUserTxBuffer[idxTxBuffer];
-			memcpy(txBufPtr->Buffer, rxBufPtr->Buffer, rxBufPtr->Length);
-			txBufPtr->Length = rxBufPtr->Length;
-			AsciiToLed(txBufPtr->Buffer[0]);
-			CDC_Transmit_FS(txBufPtr->Buffer, rxBufPtr->Length);
-			idxTxBuffer = (idxTxBuffer + 1) % TX_BUFFER_COUNT;
+			ParseInputChars(rxBufPtr);
 		}
 		//check received length, read UserRxBufferFS
   }
