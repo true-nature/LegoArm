@@ -85,7 +85,7 @@ static void PrintStr(char *str, uint32_t len)
 	UsbUserBufferDef *txBufPtr = &UsbUserTxBuffer[idxTxBuffer];
 	memcpy(txBufPtr->Buffer, str, len);
 	txBufPtr->Length = len;
-	while (CDC_Transmit_FS(txBufPtr->Buffer, len) != USBD_OK) {}
+	while (CDC_Transmit_FS(txBufPtr->Buffer, len) == USBD_BUSY) {}
 	idxTxBuffer = (idxTxBuffer + 1) % TX_BUFFER_COUNT;
 }
 
