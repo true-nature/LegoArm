@@ -34,14 +34,18 @@
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __COMMAND_H
 #define __COMMAND_H
+#include "cmsis_os.h"
+#include "usbd_cdc_buf.h"
 
 #define MAX_LINE_LENGTH 128
 #define MAX_CMD_BUF_COUNT	3
 typedef struct {
 	volatile uint32_t Length;
-	uint8_t Buffer[MAX_LINE_LENGTH];
+	char Buffer[MAX_LINE_LENGTH];
 } CommandBufferDef;
 
 void ParseInputChars(UsbUserBufferDef *rxPtr);
+
+void cmdVersion(CommandBufferDef *cmd);
 
 #endif /* __COMMAND_H */

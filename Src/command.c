@@ -64,6 +64,15 @@ struct {
 	{GPIOE, GPIO_PIN_10},		/* LD5 */
 };
 
+struct CmdDic {
+	const char *name;
+	void (*func)(CommandBufferDef *cmd);
+} CmdDic[] = {
+	{"VERSION", cmdVersion},
+	{NULL, NULL}
+};
+
+
 /**
  * @brief Set LD3 to LE10 state according to ascii code.
  * @param ch: ascii code
@@ -89,6 +98,25 @@ static void PrintStr(char *str, uint32_t len)
 	idxTxBuffer = (idxTxBuffer + 1) % TX_BUFFER_COUNT;
 }
 
+
+void cmdVersion(CommandBufferDef *cmd)
+{
+	PrintStr("v0.1\r\n", 6);
+}
+static void LookupCommand(CommandBufferDef *cmd)
+{
+	struct CmdDic *cmdPtr = CmdDic;
+	while (cmdPtr->name != NULL)
+	{
+		uint16_t cmdLength = strlen(cmdPtr->name);
+		if (cmdPtr->func != NULL & cmd->Length >= cmdLength && strncmp(cmdPtr->name, cmd->Buffer, cmdLength) == 0)
+		{
+			cmdPtr->func(cmd);
+		}
+		cmdPtr++;
+	}
+}
+
 /**
  * Parse input string from VCP RX port.
  */
@@ -104,6 +132,7 @@ void ParseInputChars(UsbUserBufferDef *rxPtr)
 				PrintStr("\r\n", 2);
 				PrintStr((char *)cmdBufPtr->Buffer, cmdBufPtr->Length);
 				PrintStr("\r\n", 2);
+				LookupCommand(cmdBufPtr);
 			  currentCmdIdx = (currentCmdIdx + 1 ) % MAX_CMD_BUF_COUNT;
 				cmdBufPtr = &CmdBuf[currentCmdIdx];
 				cmdBufPtr->Length = 0;
