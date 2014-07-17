@@ -189,11 +189,11 @@ static void PrintStr(char *str, uint32_t len)
 	UsbUserBufferDef *txBufPtr = &UsbUserTxBuffer[idxTxBuffer];
 	memcpy(txBufPtr->Buffer, str, len);
 	txBufPtr->Length = len;
-	CDC_Transmit_FS(txBufPtr->Buffer, len);
+	while (CDC_Transmit_FS(txBufPtr->Buffer, len) != USBD_OK) {}
 	idxTxBuffer = (idxTxBuffer + 1) % TX_BUFFER_COUNT;
 }
 
-#define BS_CHR_ECHO	"\b \b"
+#define BACKSPACE_ECHO	"\b \b"
 
 static void ParseInputChars(UsbUserBufferDef *rxPtr)
 {
@@ -202,8 +202,11 @@ static void ParseInputChars(UsbUserBufferDef *rxPtr)
 	CommandBufferDef *cmdBufPtr = &CmdBuf[currentCmdIdx];
 	while (p < tail) {
 		switch (*p) {
-			case '\n':
+			case '\r':
 				// execute command
+				PrintStr("\r\n", 2);
+				PrintStr((char *)cmdBufPtr->Buffer, cmdBufPtr->Length);
+				PrintStr("\r\n", 2);
 			  currentCmdIdx = (currentCmdIdx + 1 ) % MAX_CMD_BUF_COUNT;
 				cmdBufPtr = &CmdBuf[currentCmdIdx];
 				cmdBufPtr->Length = 0;
@@ -211,15 +214,16 @@ static void ParseInputChars(UsbUserBufferDef *rxPtr)
 			case '\b':
 				if (cmdBufPtr->Length > 0) {
 					cmdBufPtr->Length--;
-					PrintStr(BS_CHR_ECHO, strlen(BS_CHR_ECHO));
+					PrintStr(BACKSPACE_ECHO, strlen(BACKSPACE_ECHO));
 				}
 				break;
 			default:
+				PrintStr((void *)p, 1);
 				AsciiToLed(*p);
 				cmdBufPtr->Buffer[cmdBufPtr->Length] = *p;
 				cmdBufPtr->Length++;
-				PrintStr((void *)p, 1);
 		}
+		p++;
 	}
 }
 
