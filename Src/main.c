@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : main.c
-  * Date               : 16/07/2014 20:44:35
+  * Date               : 17/07/2014 22:59:46
   * Description        : Main program body
   ******************************************************************************
   *
@@ -79,8 +79,8 @@ int main(void)
   MX_I2C1_Init();
   MX_I2C2_Init();
   MX_SPI1_Init();
-  MX_TIM2_Init();
   MX_TIM3_Init();
+  MX_TIM4_Init();
 
   /* USER CODE BEGIN 2 */
  	osMessageQDef(RcvBox, RX_BUFFER_COUNT, uint32_t);

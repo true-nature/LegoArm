@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : gpio.c
-  * Date               : 16/07/2014 20:44:31
+  * Date               : 17/07/2014 22:59:35
   * Description        : This file provides code for the configuration
   *                      of all used GPIO pins.
   ******************************************************************************
@@ -62,6 +62,7 @@ void MX_GPIO_Init(void)
   __GPIOE_CLK_ENABLE();
   __GPIOF_CLK_ENABLE();
   __GPIOA_CLK_ENABLE();
+  __GPIOD_CLK_ENABLE();
   __GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pins : PE2 PE4 PE5 PE0 

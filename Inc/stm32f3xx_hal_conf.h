@@ -309,5 +309,4 @@
 
 #endif /* __STM32F3xx_HAL_CONF_H */
 
-
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
