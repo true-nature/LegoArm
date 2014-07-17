@@ -45,8 +45,8 @@
 
 /* USER CODE BEGIN 0 */
 #include "usbd_cdc_buf.h"
+#include "command.h"
 osMessageQId RcvBoxId;
-static uint16_t idxTxBuffer = 0;
 
 /* USER CODE END 0 */
 
@@ -146,86 +146,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-#define MAX_LINE_LENGTH 128
-#define MAX_CMD_BUF_COUNT	3
-typedef struct {
-	volatile uint32_t Length;
-	uint8_t Buffer[MAX_LINE_LENGTH];
-} CommandBufferDef;
-CommandBufferDef CmdBuf[MAX_CMD_BUF_COUNT];
-static uint16_t currentCmdIdx;
-
-struct {
-	GPIO_TypeDef* GPIOx;
-	uint16_t GPIO_Pin;
-} GpioLedMap[8] = {
-	{GPIOE, GPIO_PIN_9},		/* LD3 */
-	{GPIOE, GPIO_PIN_8},		/* LD4 */
-	{GPIOE, GPIO_PIN_15},		/* LD6 */
-	{GPIOE, GPIO_PIN_14},		/* LD8 */
-	{GPIOE, GPIO_PIN_13},		/* LD10 */
-	{GPIOE, GPIO_PIN_12},		/* LD9 */
-	{GPIOE, GPIO_PIN_11},		/* LD7 */
-	{GPIOE, GPIO_PIN_10},		/* LD5 */
-};
-
-/**
- * @brief Set LD3 to LE10 state according to ascii code.
- * @param ch: ascii code
- * @retval None
- */
-static void AsciiToLed(uint8_t ch)
-{
-	for (int i = 0; i < 8; i++) {
-		GPIO_PinState state = ((ch >> i) & 1 ? GPIO_PIN_SET : GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GpioLedMap[i].GPIOx, GpioLedMap[i].GPIO_Pin, state);
-	}
-}
-
-
-static void PrintStr(char *str, uint32_t len)
-{
-	UsbUserBufferDef *txBufPtr = &UsbUserTxBuffer[idxTxBuffer];
-	memcpy(txBufPtr->Buffer, str, len);
-	txBufPtr->Length = len;
-	while (CDC_Transmit_FS(txBufPtr->Buffer, len) != USBD_OK) {}
-	idxTxBuffer = (idxTxBuffer + 1) % TX_BUFFER_COUNT;
-}
-
-#define BACKSPACE_ECHO	"\b \b"
-
-static void ParseInputChars(UsbUserBufferDef *rxPtr)
-{
-	uint8_t *p = &rxPtr->Buffer[0];
-	uint8_t *tail = &rxPtr->Buffer[rxPtr->Length];
-	CommandBufferDef *cmdBufPtr = &CmdBuf[currentCmdIdx];
-	while (p < tail) {
-		switch (*p) {
-			case '\r':
-				// execute command
-				PrintStr("\r\n", 2);
-				PrintStr((char *)cmdBufPtr->Buffer, cmdBufPtr->Length);
-				PrintStr("\r\n", 2);
-			  currentCmdIdx = (currentCmdIdx + 1 ) % MAX_CMD_BUF_COUNT;
-				cmdBufPtr = &CmdBuf[currentCmdIdx];
-				cmdBufPtr->Length = 0;
-				break;
-			case '\b':
-				if (cmdBufPtr->Length > 0) {
-					cmdBufPtr->Length--;
-					PrintStr(BACKSPACE_ECHO, strlen(BACKSPACE_ECHO));
-				}
-				break;
-			default:
-				PrintStr((void *)p, 1);
-				AsciiToLed(*p);
-				cmdBufPtr->Buffer[cmdBufPtr->Length] = *p;
-				cmdBufPtr->Length++;
-		}
-		p++;
-	}
-}
 
 /* USER CODE END 4 */
 

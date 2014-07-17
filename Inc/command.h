@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
-  * @file           : USB_CDC_BUF
-  * @brief          : Header for bufferes to send/receive usb data.
+  * @file           : COMMAND
+  * @brief          : Header for Command Interpreter.
   ******************************************************************************
   * COPYRIGHT(c) 2014 STMicroelectronics
   *
@@ -32,23 +32,16 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __USBD_CDC_BUF_H
-#define __USBD_CDC_BUF_H
-#include "cmsis_os.h"
-#include "usbd_cdc_if.h"
+#ifndef __COMMAND_H
+#define __COMMAND_H
 
-#define RX_BUFFER_COUNT	2
-#define TX_BUFFER_COUNT	2
+#define MAX_LINE_LENGTH 128
+#define MAX_CMD_BUF_COUNT	3
 typedef struct {
 	volatile uint32_t Length;
-	uint8_t Buffer[CDC_DATA_FS_MAX_PACKET_SIZE];
-} UsbUserBufferDef;
-/* Send Data over USB CDC are stored in this buffer       */
-extern UsbUserBufferDef UsbUserTxBuffer[];
-extern uint16_t idxTxBuffer;
-/* Received Data over USB are stored in this buffer       */
-extern UsbUserBufferDef UsbUserRxBuffer[];
+	uint8_t Buffer[MAX_LINE_LENGTH];
+} CommandBufferDef;
 
-extern osMessageQId  RcvBoxId;
+void ParseInputChars(UsbUserBufferDef *rxPtr);
 
-#endif /* __USBD_CDC_BUF_H */
+#endif /* __COMMAND_H */

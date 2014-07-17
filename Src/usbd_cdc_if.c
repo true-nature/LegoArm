@@ -91,6 +91,7 @@ static uint32_t idxRxBuffer = 0;
 
 /* Send Data over USB CDC are stored in this buffer       */
 UsbUserBufferDef UsbUserTxBuffer[TX_BUFFER_COUNT];
+uint16_t idxTxBuffer = 0;
   /* USER CODE END 3 */
 
 /* USB handler declaration */
