@@ -46,6 +46,13 @@
 
 /* USER CODE BEGIN 4 */
 
+#define MSG_CRLF "\r\n"
+#define MSG_EMPTY_ARGUMENT "Empty argument.\r\n"
+#define MAG_INVALID_PARAMETER "Invalid parameter.\r\n"
+
+#define MIN_CARD_POS 1
+#define MAX_CARD_POS 4
+
 #define MAX_CMD_BUF_COUNT	3
 static CommandBufferDef CmdBuf[MAX_CMD_BUF_COUNT];
 static uint16_t currentCmdIdx;
@@ -75,10 +82,11 @@ struct CmdDic {
 	const char *name;
 	void (*func)(CommandBufferDef *cmd);
 } CmdDic[] = {
-	{"VERSION", cmdVersion},
-	{"RELOCATE", cmdRelocate},
 	{"PUTON", cmdPutOn},
 	{"TAKEOFF", cmdTakeOff},
+	{"RELOCATE", cmdRelocate},
+	{"HELP", cmdHelp},
+	{"VERSION", cmdVersion},
 	{NULL, NULL}
 };
 
@@ -152,21 +160,30 @@ static uint16_t Chr2CardNo(char c)
 /**
 	* 0: home, 1:A, 2:B, 3:C, 4:D
 	*/
-void MoveCard(uint16_t start, uint16_t end)
+static void MoveCard(uint16_t start, uint16_t end)
 {
-	if (start == end) {
-		return;
-	}
 	if (start > 4) {
 		PutStr("Invalid start position : ");
 		PutChr(start + '0');
+		PutStr(MSG_CRLF);
 		return;
 	}
 	if (end > 4) {
 		PutStr("Invalid end position : ");
 		PutChr(end + '0');
+		PutStr(MSG_CRLF);
 		return;
 	}
+	if (start == end) {
+		PutStr(MAG_INVALID_PARAMETER);
+		return;
+	}
+	PutStr("Move card from ");
+	PutChr(start + '0');
+	PutStr(" to ");
+	PutChr(end + '0');
+	PutStr(".\r\n");
+	
 	// lift up arm
 	// turn arm to FROM position
 	// lift down arm
@@ -185,7 +202,7 @@ void MoveCard(uint16_t start, uint16_t end)
 void cmdVersion(CommandBufferDef *cmd)
 {
 	PutStr(VERSION_STR);
-	PutStr("\r\n");
+	PutStr(MSG_CRLF);
 }
 
 /**
@@ -208,13 +225,16 @@ void cmdRelocate(CommandBufferDef *cmd)
   */
 void cmdPutOn(CommandBufferDef *cmd)
 {
-	PutStr("Put a card on the RF antenna.\r\n");
 	if (cmd->Arg == NULL) {
-		PutStr("Empty argument.");
+		PutStr(MSG_EMPTY_ARGUMENT);
 	}
 	// 0: home, 1:A, 2:B, 3:C, 4:D
 	uint16_t card = Chr2CardNo(cmd->Arg[0]);
-	MoveCard(card, 0);
+	if (card >= MIN_CARD_POS && card <= MAX_CARD_POS) {
+		MoveCard(card, 0);
+	} else {
+		PutStr(MAG_INVALID_PARAMETER);
+	}
 }
 
 /**
@@ -224,13 +244,16 @@ void cmdPutOn(CommandBufferDef *cmd)
   */
 void cmdTakeOff(CommandBufferDef *cmd)
 {
-	PutStr("Take a card off from the RF antenna.\r\n");
 	if (cmd->Arg == NULL) {
-		PutStr("Empty argument.");
+		PutStr(MSG_EMPTY_ARGUMENT);
 	}
 	// 0: home, 1:A, 2:B, 3:C, 4:D
 	uint16_t card = Chr2CardNo(cmd->Arg[0]);
-	MoveCard(0, card);
+	if (card >= MIN_CARD_POS && card <= MAX_CARD_POS) {
+		MoveCard(0, card);
+	} else {
+		PutStr(MAG_INVALID_PARAMETER);
+	}
 }
 
 /**
@@ -269,16 +292,33 @@ static void SplitArg(CommandBufferDef *cmd)
 
 static void LookupCommand(CommandBufferDef *cmd)
 {
-	struct CmdDic *cmdPtr = CmdDic;
+	struct CmdDic *cmdPtr, *matched;
+	uint16_t matchCount;
 	SplitArg(cmd);
-	while (cmdPtr->name != NULL)
-	{
-		uint16_t cmdLength = strlen(cmdPtr->name);
-		if (cmdPtr->func != NULL & cmd->CmdLength == cmdLength && strncmp(cmdPtr->name, cmd->Buffer, cmd->CmdLength) == 0)
+	for (int len = 1; len <= cmd->CmdLength; len++) {
+		cmdPtr = CmdDic;
+		matchCount = 0;
+		while (cmdPtr->name != NULL)
 		{
-			cmdPtr->func(cmd);
+			if (strncmp(cmdPtr->name, cmd->Buffer, len) == 0) {
+				matchCount++;
+				matched = cmdPtr;
+			}
+			cmdPtr++;
 		}
-		cmdPtr++;
+		// check if only one command matched or not
+		if (matchCount > 1) {
+			continue;
+		}
+		else 
+		{
+			if (matchCount == 1 && cmd->CmdLength <= strlen(matched->name) && strncmp(matched->name, cmd->Buffer, cmd->CmdLength) == 0) {
+				matched->func(cmd);
+			} else {
+				PutStr("SYNTAX ERROR\r\n");
+			}
+			break;
+		}
 	}
 }
 
@@ -294,14 +334,14 @@ void ParseInputChars(UsbUserBufferDef *rxPtr)
 		switch (*p) {
 			case '\r':
 				// execute command
-				PutStr("\r\n");
-				cmdBufPtr->Buffer[cmdBufPtr->Length] = '\0';
-				PutStr((char *)cmdBufPtr->Buffer);
-				PutStr("\r\n");
-				LookupCommand(cmdBufPtr);
-			  currentCmdIdx = (currentCmdIdx + 1 ) % MAX_CMD_BUF_COUNT;
-				cmdBufPtr = &CmdBuf[currentCmdIdx];
-				cmdBufPtr->Length = 0;
+				PutStr(MSG_CRLF);
+			  if (cmdBufPtr->Length > 0) {
+					cmdBufPtr->Buffer[cmdBufPtr->Length] = '\0';
+					LookupCommand(cmdBufPtr);
+					currentCmdIdx = (currentCmdIdx + 1 ) % MAX_CMD_BUF_COUNT;
+					cmdBufPtr = &CmdBuf[currentCmdIdx];
+					cmdBufPtr->Length = 0;
+				}
 				break;
 			case '\b':
 				if (cmdBufPtr->Length > 0) {
@@ -309,13 +349,19 @@ void ParseInputChars(UsbUserBufferDef *rxPtr)
 					PutStr("\b \b");
 				}
 				break;
+			case ' ':
+			case '\t':
+				// skip space character at line top
+				if (cmdBufPtr->Length == 0) {
+					break;
+				}
 			default:
 				AsciiToLed(*p);
+				PutChr(*p);
 				// capitalize
 			  if (*p >= 'a' && *p <= 'z') {
 					*p = *p - ('a' - 'A');
 				}
-				PutChr(*p);
 				cmdBufPtr->Buffer[cmdBufPtr->Length] = *p;
 				cmdBufPtr->Length++;
 		}
