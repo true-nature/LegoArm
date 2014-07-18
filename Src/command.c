@@ -121,6 +121,64 @@ static void PutChr(char c)
 	idxTxBuffer = (idxTxBuffer + 1) % TX_BUFFER_COUNT;
 }
 
+
+/**
+	* Convert character to card position No.
+	* 0: home, 1:A, 2:B, 3:C, 4:D
+	*/
+static uint16_t Chr2CardNo(char c)
+{
+	uint16_t card = 0;
+	switch (c)
+	{
+		case 'A':
+		case 'B':
+		case 'C':
+		case 'D':
+			card = (c - 'A') + 1;
+			break;
+		case 'F':
+			card = 3;
+			break;
+		case 'V':
+			card = 4;
+			break;
+		default:
+			;
+	}
+	return card;
+}
+
+/**
+	* 0: home, 1:A, 2:B, 3:C, 4:D
+	*/
+void MoveCard(uint16_t start, uint16_t end)
+{
+	if (start == end) {
+		return;
+	}
+	if (start > 4) {
+		PutStr("Invalid start position : ");
+		PutChr(start + '0');
+		return;
+	}
+	if (end > 4) {
+		PutStr("Invalid end position : ");
+		PutChr(end + '0');
+		return;
+	}
+	// lift up arm
+	// turn arm to FROM position
+	// lift down arm
+	// vacuum on
+	// lift up arm
+	// turn arm to TO position
+	// lift down arm
+	// vacuum off
+	// lift up arm
+	// turn arm to home position
+}
+
 /**
   * Print version number.
   */
@@ -136,6 +194,10 @@ void cmdVersion(CommandBufferDef *cmd)
 void cmdRelocate(CommandBufferDef *cmd)
 {
 	PutStr("Re-scan mechanical limit position.\r\n");
+	// lift up arm
+	// turn arm to right while mechanical limit
+	//    sense photo reflector
+	// turn arm to home position
 }
 
 
@@ -150,6 +212,9 @@ void cmdPutOn(CommandBufferDef *cmd)
 	if (cmd->Arg == NULL) {
 		PutStr("Empty argument.");
 	}
+	// 0: home, 1:A, 2:B, 3:C, 4:D
+	uint16_t card = Chr2CardNo(cmd->Arg[0]);
+	MoveCard(card, 0);
 }
 
 /**
@@ -163,6 +228,9 @@ void cmdTakeOff(CommandBufferDef *cmd)
 	if (cmd->Arg == NULL) {
 		PutStr("Empty argument.");
 	}
+	// 0: home, 1:A, 2:B, 3:C, 4:D
+	uint16_t card = Chr2CardNo(cmd->Arg[0]);
+	MoveCard(0, card);
 }
 
 /**
