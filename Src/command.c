@@ -76,9 +76,9 @@ struct CmdDic {
 	void (*func)(CommandBufferDef *cmd);
 } CmdDic[] = {
 	{"VERSION", cmdVersion},
-	// RELOCATE
-	// PUTON <A/B/C/D>
-	// TAKEOFF [A/B/C/D]
+	{"RELOCATE", cmdRelocate},
+	{"PUTON", cmdPutOn},
+	{"TAKEOFF", cmdTakeOff},
 	{NULL, NULL}
 };
 
@@ -141,18 +141,28 @@ void cmdRelocate(CommandBufferDef *cmd)
 
 /**
   * Put a card on the RF antenna.
+	*
+	* PUTON <A/B/C/D>
   */
 void cmdPutOn(CommandBufferDef *cmd)
 {
 	PutStr("Put a card on the RF antenna.\r\n");
+	if (cmd->Arg == NULL) {
+		PutStr("Empty argument.");
+	}
 }
 
 /**
   * Take a card off from the RF antenna.
+	*
+	* TAKEOFF <A/B/C/D>
   */
 void cmdTakeOff(CommandBufferDef *cmd)
 {
 	PutStr("Take a card off from the RF antenna.\r\n");
+	if (cmd->Arg == NULL) {
+		PutStr("Empty argument.");
+	}
 }
 
 /**
@@ -163,14 +173,40 @@ void cmdHelp(CommandBufferDef *cmd)
 	PutStr("Show command help.\r\n");
 }
 
+/**
+  * Split command and argument.
+  */
+static void SplitArg(CommandBufferDef *cmd)
+{
+	cmd->Arg = NULL;
+	char *ptr = cmd->Buffer;
+	char *tail = ptr + MAX_COMMAND_LENGTH;
+	while (ptr < tail) {
+		if (*ptr == '\0' || *ptr == ' ' || *ptr=='\t') {
+			break;
+		}
+		ptr++;
+	}
+	cmd->CmdLength = (ptr - cmd->Buffer);
+	if (*ptr != '\0') {
+		while (ptr < tail) {
+			ptr++;
+			if (*ptr != ' ' && *ptr != '\t') {
+				cmd->Arg = ptr;
+				break;
+			}
+		}
+	}
+}
 
 static void LookupCommand(CommandBufferDef *cmd)
 {
 	struct CmdDic *cmdPtr = CmdDic;
+	SplitArg(cmd);
 	while (cmdPtr->name != NULL)
 	{
 		uint16_t cmdLength = strlen(cmdPtr->name);
-		if (cmdPtr->func != NULL & cmd->Length >= cmdLength && strncmp(cmdPtr->name, cmd->Buffer, cmdLength) == 0)
+		if (cmdPtr->func != NULL & cmd->CmdLength == cmdLength && strncmp(cmdPtr->name, cmd->Buffer, cmd->CmdLength) == 0)
 		{
 			cmdPtr->func(cmd);
 		}
@@ -206,8 +242,12 @@ void ParseInputChars(UsbUserBufferDef *rxPtr)
 				}
 				break;
 			default:
-				PutChr(*p);
 				AsciiToLed(*p);
+				// capitalize
+			  if (*p >= 'a' && *p <= 'z') {
+					*p = *p - ('a' - 'A');
+				}
+				PutChr(*p);
 				cmdBufPtr->Buffer[cmdBufPtr->Length] = *p;
 				cmdBufPtr->Length++;
 		}

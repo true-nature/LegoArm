@@ -42,8 +42,10 @@
 #define MAX_COMMAND_LENGTH 127
 #define MAX_CMD_BUF_COUNT	3
 typedef struct {
-	volatile uint32_t Length;
+	uint32_t Length;
 	char Buffer[MAX_COMMAND_LENGTH + 1];
+	uint32_t CmdLength;
+	char *Arg;
 } CommandBufferDef;
 
 void ParseInputChars(UsbUserBufferDef *rxPtr);
