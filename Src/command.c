@@ -64,11 +64,21 @@ struct {
 	{GPIOE, GPIO_PIN_10},		/* LD5 */
 };
 
+
+void cmdVersion(CommandBufferDef *cmd);
+void cmdRelocate(CommandBufferDef *cmd);
+void cmdPutOn(CommandBufferDef *cmd);
+void cmdTakeOff(CommandBufferDef *cmd);
+void cmdHelp(CommandBufferDef *cmd);
+
 struct CmdDic {
 	const char *name;
 	void (*func)(CommandBufferDef *cmd);
 } CmdDic[] = {
 	{"VERSION", cmdVersion},
+	// RELOCATE
+	// PUTON <A/B/C/D>
+	// TAKEOFF [A/B/C/D]
 	{NULL, NULL}
 };
 
@@ -87,22 +97,73 @@ static void AsciiToLed(uint8_t ch)
 }
 
 /**
- * Print string via VCP TX port.
+ * Print a string via VCP TX port.
  */
-static void PrintStr(char *str, uint32_t len)
+static void PutStr(char *str)
 {
+	uint32_t len = strlen(str);
 	UsbUserBufferDef *txBufPtr = &UsbUserTxBuffer[idxTxBuffer];
-	memcpy(txBufPtr->Buffer, str, len);
+	strlcpy((char *)txBufPtr->Buffer, str, MAX_COMMAND_LENGTH);
 	txBufPtr->Length = len;
 	while (CDC_Transmit_FS(txBufPtr->Buffer, len) == USBD_BUSY) {}
 	idxTxBuffer = (idxTxBuffer + 1) % TX_BUFFER_COUNT;
 }
 
+/**
+ * Print a character via VCP TX port.
+ */
+static void PutChr(char c)
+{
+	UsbUserBufferDef *txBufPtr = &UsbUserTxBuffer[idxTxBuffer];
+	txBufPtr->Buffer[0] = c;
+	txBufPtr->Length = 1;
+	while (CDC_Transmit_FS(txBufPtr->Buffer, 1) == USBD_BUSY) {}
+	idxTxBuffer = (idxTxBuffer + 1) % TX_BUFFER_COUNT;
+}
 
+/**
+  * Print version number.
+  */
 void cmdVersion(CommandBufferDef *cmd)
 {
-	PrintStr("v0.1\r\n", 6);
+	PutStr(VERSION_STR);
+	PutStr("\r\n");
 }
+
+/**
+  * Re-scan mechanical limit position.
+  */
+void cmdRelocate(CommandBufferDef *cmd)
+{
+	PutStr("Re-scan mechanical limit position.\r\n");
+}
+
+
+/**
+  * Put a card on the RF antenna.
+  */
+void cmdPutOn(CommandBufferDef *cmd)
+{
+	PutStr("Put a card on the RF antenna.\r\n");
+}
+
+/**
+  * Take a card off from the RF antenna.
+  */
+void cmdTakeOff(CommandBufferDef *cmd)
+{
+	PutStr("Take a card off from the RF antenna.\r\n");
+}
+
+/**
+  * Show command help.
+  */
+void cmdHelp(CommandBufferDef *cmd)
+{
+	PutStr("Show command help.\r\n");
+}
+
+
 static void LookupCommand(CommandBufferDef *cmd)
 {
 	struct CmdDic *cmdPtr = CmdDic;
@@ -125,13 +186,14 @@ void ParseInputChars(UsbUserBufferDef *rxPtr)
 	uint8_t *p = &rxPtr->Buffer[0];
 	uint8_t *tail = &rxPtr->Buffer[rxPtr->Length];
 	CommandBufferDef *cmdBufPtr = &CmdBuf[currentCmdIdx];
-	while (p < tail) {
+	while (p < tail && cmdBufPtr->Length < MAX_COMMAND_LENGTH) {
 		switch (*p) {
 			case '\r':
 				// execute command
-				PrintStr("\r\n", 2);
-				PrintStr((char *)cmdBufPtr->Buffer, cmdBufPtr->Length);
-				PrintStr("\r\n", 2);
+				PutStr("\r\n");
+				cmdBufPtr->Buffer[cmdBufPtr->Length] = '\0';
+				PutStr((char *)cmdBufPtr->Buffer);
+				PutStr("\r\n");
 				LookupCommand(cmdBufPtr);
 			  currentCmdIdx = (currentCmdIdx + 1 ) % MAX_CMD_BUF_COUNT;
 				cmdBufPtr = &CmdBuf[currentCmdIdx];
@@ -140,11 +202,11 @@ void ParseInputChars(UsbUserBufferDef *rxPtr)
 			case '\b':
 				if (cmdBufPtr->Length > 0) {
 					cmdBufPtr->Length--;
-					PrintStr("\b \b", 3);
+					PutStr("\b \b");
 				}
 				break;
 			default:
-				PrintStr((void *)p, 1);
+				PutChr(*p);
 				AsciiToLed(*p);
 				cmdBufPtr->Buffer[cmdBufPtr->Length] = *p;
 				cmdBufPtr->Length++;
