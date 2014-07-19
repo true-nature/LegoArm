@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : main.c
-  * Date               : 17/07/2014 22:59:46
+  * Date               : 20/07/2014 08:45:07
   * Description        : Main program body
   ******************************************************************************
   *
@@ -93,7 +93,7 @@ int main(void)
   osThreadDef(MOTOR_Thread, StartMotorThread, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
   osThreadCreate (osThread(MOTOR_Thread), NULL);
 
-/* USER CODE END 2 */
+  /* USER CODE END 2 */
 
   /* Code generated for FreeRTOS */
   /* Create Start thread */

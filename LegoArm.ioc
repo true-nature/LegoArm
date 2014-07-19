@@ -1,6 +1,7 @@
 #MicroXplorer Configuration settings - do not modify
-#Thu Jul 17 22:59:34 JST 2014
-FREERTOS.IPParameters=configUSE_PREEMPTION,configUSE_TIMERS
+#Sun Jul 20 08:45:03 JST 2014
+FREERTOS.IPParameters=configUSE_PREEMPTION,configTOTAL_HEAP_SIZE,configUSE_TIMERS
+FREERTOS.configTOTAL_HEAP_SIZE=4000
 FREERTOS.configUSE_PREEMPTION=1
 FREERTOS.configUSE_TIMERS=1
 File.Version=4
