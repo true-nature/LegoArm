@@ -37,6 +37,7 @@
 #include "cmsis_os.h"
 #include "usb_device.h"
 #include "gpio.h"
+#include "i2c.h"
 #include "usbd_cdc_buf.h"
 #include "command.h"
 
@@ -71,17 +72,18 @@ struct {
 	{GPIOE, GPIO_PIN_10},		/* LD5 */
 };
 
-
 void cmdVersion(CommandBufferDef *cmd);
 void cmdRelocate(CommandBufferDef *cmd);
 void cmdPutOn(CommandBufferDef *cmd);
 void cmdTakeOff(CommandBufferDef *cmd);
 void cmdHelp(CommandBufferDef *cmd);
 
-struct CmdDic {
+typedef struct  {
 	const char *name;
 	void (*func)(CommandBufferDef *cmd);
-} CmdDic[] = {
+} CommandOp;
+
+CommandOp CmdDic[] = {
 	{"PUTON", cmdPutOn},
 	{"TAKEOFF", cmdTakeOff},
 	{"RELOCATE", cmdRelocate},
@@ -90,6 +92,69 @@ struct CmdDic {
 	{NULL, NULL}
 };
 
+// card position index
+typedef enum {
+	Index_Ant = 0,
+	Index_Home,
+	Index_A,
+	Index_B,
+	Index_C,
+	Index_F = Index_C,
+	Index_D,
+	Index_V = Index_D,
+	Index_MAX = Index_D
+} TrayIndex;
+
+// turn table angle: [0..95]
+#define STEP_PER_REV	96
+#define STEP_PER_30DEG	(STEP_PER_REV/12)
+
+// PM step correspnding to TrayAngle
+uint16_t TrayStepPos[] = {
+	0,
+	STEP_PER_30DEG, 
+	2*STEP_PER_30DEG,
+	3*STEP_PER_30DEG, 
+	4*STEP_PER_30DEG,
+	5*STEP_PER_30DEG
+};
+uint16_t currStepPos;
+
+#define I2C_ADDR_PH_A_w	((0x63<<1)+0)
+#define I2C_ADDR_PH_B_w	((0x64<<1)+0)
+#define I2C_SUB_CTRL	0
+#define VSET_MIN	0x06
+#define VSET_MAX	0x3F
+#define VSET	VSET_MIN
+#define OUT_POS	((VSET<<2)+1)
+#define OUT_NEG	((VSET<<2)+2)
+
+#define PHASE_COUNT	4
+// [PAHSE][A/B][data]
+uint8_t PM_PHASE[PHASE_COUNT][2][2] = {
+	// phase1
+	{
+		{I2C_SUB_CTRL, OUT_POS},
+		{I2C_SUB_CTRL, OUT_NEG}
+	}
+	// phase2
+	, {
+		{I2C_SUB_CTRL, OUT_POS},
+		{I2C_SUB_CTRL, OUT_POS}
+	}
+	// phase3
+	, {
+		{I2C_SUB_CTRL, OUT_NEG},
+		{I2C_SUB_CTRL, OUT_POS}
+	}
+	// phase4
+	, {
+		{I2C_SUB_CTRL, OUT_NEG},
+		{I2C_SUB_CTRL, OUT_NEG}
+	}
+};
+static uint16_t currentPhase;
+#define INTER_PHASE_DELAY_MS	1000
 
 /**
  * @brief Set LD3 to LE10 state according to ascii code.
@@ -134,22 +199,24 @@ static void PutChr(char c)
 	* Convert character to card position No.
 	* 0: home, 1:A, 2:B, 3:C, 4:D
 	*/
-static uint16_t Chr2CardNo(char c)
+static TrayIndex Chr2CardNo(char c)
 {
-	uint16_t card = 0;
+	TrayIndex card = Index_Ant;
 	switch (c)
 	{
 		case 'A':
+			card = Index_A;
+			break;
 		case 'B':
+			card = Index_B;
+			break;
 		case 'C':
-		case 'D':
-			card = (c - 'A') + 1;
-			break;
 		case 'F':
-			card = 3;
+			card = Index_C;
 			break;
+		case 'D':
 		case 'V':
-			card = 4;
+			card = Index_D;
 			break;
 		default:
 			;
@@ -157,12 +224,37 @@ static uint16_t Chr2CardNo(char c)
 	return card;
 }
 
+static void TurnTable(TrayIndex card)
+{
+	int16_t dst = TrayStepPos[card];
+	int16_t diff = dst - currStepPos;
+	int16_t step = 0;
+	if (diff > 0) {
+		step = 1;
+	} else if (step < 0) {
+		step = -1;
+	}
+	
+	while (dst != currStepPos) {
+		uint16_t nextPhase = (currentPhase + step) % PHASE_COUNT;
+		if (HAL_I2C_Master_Transmit(&hi2c1, I2C_ADDR_PH_A_w, PM_PHASE[nextPhase][0], 2, 25) != osOK) {
+			break;
+		}
+//		if (HAL_I2C_Master_Transmit(&hi2c2, I2C_ADDR_PH_B_w, PM_PHASE[nextPhase][1], 2, 25) != osOK) {
+//			break;
+//		}
+		currentPhase = nextPhase;
+		currStepPos += step;
+		osDelay(INTER_PHASE_DELAY_MS);
+	}
+}
+
 /**
 	* 0: home, 1:A, 2:B, 3:C, 4:D
 	*/
-static void MoveCard(uint16_t start, uint16_t end)
+static void MoveCard(TrayIndex start, TrayIndex end)
 {
-	if (start > 4) {
+	if (start > Index_D) {
 		PutStr("Invalid start position : ");
 		PutChr(start + '0');
 		PutStr(MSG_CRLF);
@@ -186,14 +278,17 @@ static void MoveCard(uint16_t start, uint16_t end)
 	
 	// lift up arm
 	// turn arm to FROM position
+	TurnTable(start);
 	// lift down arm
 	// vacuum on
 	// lift up arm
 	// turn arm to TO position
+	TurnTable(end);
 	// lift down arm
 	// vacuum off
 	// lift up arm
 	// turn arm to home position
+	TurnTable(Index_Home);
 }
 
 /**
@@ -229,9 +324,9 @@ void cmdPutOn(CommandBufferDef *cmd)
 		PutStr(MSG_EMPTY_ARGUMENT);
 	}
 	// 0: home, 1:A, 2:B, 3:C, 4:D
-	uint16_t card = Chr2CardNo(cmd->Arg[0]);
+	TrayIndex card = Chr2CardNo(cmd->Arg[0]);
 	if (card >= MIN_CARD_POS && card <= MAX_CARD_POS) {
-		MoveCard(card, 0);
+		MoveCard(card, Index_Ant);
 	} else {
 		PutStr(MAG_INVALID_PARAMETER);
 	}
@@ -248,9 +343,9 @@ void cmdTakeOff(CommandBufferDef *cmd)
 		PutStr(MSG_EMPTY_ARGUMENT);
 	}
 	// 0: home, 1:A, 2:B, 3:C, 4:D
-	uint16_t card = Chr2CardNo(cmd->Arg[0]);
+	TrayIndex card = Chr2CardNo(cmd->Arg[0]);
 	if (card >= MIN_CARD_POS && card <= MAX_CARD_POS) {
-		MoveCard(0, card);
+		MoveCard(Index_Ant, card);
 	} else {
 		PutStr(MAG_INVALID_PARAMETER);
 	}
@@ -289,10 +384,24 @@ static void SplitArg(CommandBufferDef *cmd)
 		}
 	}
 }
-
+void StartMotorThread(void const * argument)
+{
+	osEvent evt;
+	CommandBufferDef *cmdBuf;
+  /* Infinite loop */
+  for(;;)
+  {
+    evt = osMessageGet(CmdBoxId, osWaitForever);
+		if (evt.status == osEventMessage) {
+			cmdBuf = evt.value.p;
+			cmdBuf->func(cmdBuf);
+		}
+		//check received length, read UserRxBufferFS
+  }
+}
 static void LookupCommand(CommandBufferDef *cmd)
 {
-	struct CmdDic *cmdPtr, *matched;
+	CommandOp *cmdPtr, *matched;
 	uint16_t matchCount;
 	SplitArg(cmd);
 	for (int len = 1; len <= cmd->CmdLength; len++) {
@@ -313,7 +422,9 @@ static void LookupCommand(CommandBufferDef *cmd)
 		else 
 		{
 			if (matchCount == 1 && cmd->CmdLength <= strlen(matched->name) && strncmp(matched->name, cmd->Buffer, cmd->CmdLength) == 0) {
+				cmd->func = matched->func;
 				matched->func(cmd);
+				osMessagePut(RcvBoxId, (uint32_t)cmd, 0);
 			} else {
 				PutStr("SYNTAX ERROR\r\n");
 			}

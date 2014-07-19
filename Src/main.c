@@ -47,6 +47,7 @@
 #include "usbd_cdc_buf.h"
 #include "command.h"
 osMessageQId RcvBoxId;
+osMessageQId CmdBoxId;
 
 /* USER CODE END 0 */
 
@@ -86,7 +87,13 @@ int main(void)
  	osMessageQDef(RcvBox, RX_BUFFER_COUNT, uint32_t);
 	RcvBoxId = osMessageCreate(osMessageQ(RcvBox), NULL);
 
-  /* USER CODE END 2 */
+ 	osMessageQDef(CmdBoxId, RX_BUFFER_COUNT, uint32_t);
+	CmdBoxId = osMessageCreate(osMessageQ(CmdBoxId), NULL);
+
+  osThreadDef(MOTOR_Thread, StartMotorThread, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);
+  osThreadCreate (osThread(MOTOR_Thread), NULL);
+
+/* USER CODE END 2 */
 
   /* Code generated for FreeRTOS */
   /* Create Start thread */

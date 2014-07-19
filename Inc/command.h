@@ -41,13 +41,17 @@
 
 #define MAX_COMMAND_LENGTH 127
 #define MAX_CMD_BUF_COUNT	3
-typedef struct {
+typedef struct CommandBufferDef {
 	uint32_t Length;
 	char Buffer[MAX_COMMAND_LENGTH + 1];
 	uint32_t CmdLength;
 	char *Arg;
+	void (*func)(struct CommandBufferDef *cmd);
 } CommandBufferDef;
 
-void ParseInputChars(UsbUserBufferDef *rxPtr);
+extern osMessageQId  CmdBoxId;
+
+extern void ParseInputChars(UsbUserBufferDef *rxPtr);
+extern void StartMotorThread(void const * argument);
 
 #endif /* __COMMAND_H */
