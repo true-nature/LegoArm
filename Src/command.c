@@ -52,9 +52,6 @@
 #define MSG_EMPTY_ARGUMENT "Empty argument.\r\n"
 #define MAG_INVALID_PARAMETER "Invalid parameter.\r\n"
 
-#define MIN_CARD_POS 1
-#define MAX_CARD_POS 4
-
 #define MAX_CMD_BUF_COUNT	3
 static CommandBufferDef CmdBuf[MAX_CMD_BUF_COUNT];
 static uint16_t currentCmdIdx;
@@ -136,7 +133,7 @@ uint8_t PM_PHASE[PHASE_COUNT][2] = {
 	, {0,	0}
 };
 static int16_t currentPhase;
-#define INTER_PHASE_DELAY_MS	250
+#define INTER_PHASE_DELAY_MS	25
 
 /**
  * @brief Set LD3 to LE10 state according to ascii code.
@@ -233,10 +230,10 @@ static void TurnTable(TrayIndex card, uint32_t millisec)
 			nextPhase += PHASE_COUNT;
 		}
 		PutChr(nextPhase + '0');
-		if (HAL_I2C_Master_Transmit(&hi2c1, I2C_ADDR_PH_A_w,  SubAdData[PM_PHASE[nextPhase][1]], 2, 10) != osOK) {
+		if (HAL_I2C_Master_Transmit(&hi2c1, I2C_ADDR_PH_A_w, SubAdData[PM_PHASE[nextPhase][0]], 2, 10) != osOK) {
 			break;
 		}
-		if (HAL_I2C_Master_Transmit(&hi2c1, I2C_ADDR_PH_B_w, SubAdData[PM_PHASE[nextPhase][0]], 2, 10) != osOK) {
+		if (HAL_I2C_Master_Transmit(&hi2c1, I2C_ADDR_PH_B_w, SubAdData[PM_PHASE[nextPhase][1]], 2, 10) != osOK) {
 			break;
 		}
 		currentPhase = nextPhase;
@@ -264,11 +261,11 @@ void MoveServo(uint32_t pulse, uint32_t millisec)
 	*/
 void MoveCard(TrayIndex start, TrayIndex end)
 {
-	if (start > Index_D) {
+	if (start > Index_MAX_CARD) {
 		PutStr("Invalid start position.\r\n");
 		return;
 	}
-	if (end > Index_D) {
+	if (end > Index_MAX_CARD) {
 		PutStr("Invalid end position.\r\n");
 		return;
 	}
@@ -327,7 +324,7 @@ void cmdPutOn(CommandBufferDef *cmd)
 	}
 	// 0: home, 1:A, 2:B, 3:C, 4:D
 	TrayIndex card = Chr2CardNo(cmd->Arg[0]);
-	if (card >= MIN_CARD_POS && card <= MAX_CARD_POS) {
+	if (card >= Index_MIN_CARD && card <= Index_MAX_CARD) {
 		PutChr(card + '0');
 		PutStr(" -> 0.\r\n");
 		MoveCard(card, Index_Ant);
@@ -348,7 +345,7 @@ void cmdTakeOff(CommandBufferDef *cmd)
 	}
 	// 0: home, 1:A, 2:B, 3:C, 4:D
 	TrayIndex card = Chr2CardNo(cmd->Arg[0]);
-	if (card >= MIN_CARD_POS && card <= MAX_CARD_POS) {
+	if (card >= Index_MIN_CARD && card <= Index_MAX_CARD) {
 		PutStr("0 -> ");
 		PutChr(card + '0');
 		PutStr(" .\r\n");
