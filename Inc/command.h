@@ -62,7 +62,11 @@ typedef enum {
 	Index_MAX = Index_D
 } TrayIndex;
 
+#define PWM_ARM_UP 1200
+#define PWM_ARM_DOWN 1500
+
 void MoveCard(TrayIndex start, TrayIndex end);
+void MoveServo(uint32_t pulse);
 
 extern osMessageQId  CmdBoxId;
 

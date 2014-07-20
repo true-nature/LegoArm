@@ -38,6 +38,7 @@
 #include "usb_device.h"
 #include "gpio.h"
 #include "i2c.h"
+#include "tim.h"
 #include "usbd_cdc_buf.h"
 #include "command.h"
 
@@ -141,7 +142,7 @@ uint8_t PM_PHASE[PHASE_COUNT][2][2] = {
 	}
 };
 static uint16_t currentPhase;
-#define INTER_PHASE_DELAY_MS	1000
+#define INTER_PHASE_DELAY_MS	100
 
 /**
  * @brief Set LD3 to LE10 state according to ascii code.
@@ -242,12 +243,16 @@ static void TurnTable(TrayIndex card)
 	}
 }
 
-static void UpArm()
+void MoveServo(uint32_t pulse)
 {
-}
+  static TIM_OC_InitTypeDef sConfigOC;
 
-static void DownArm()
-{
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = pulse;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
 }
 
 /**
@@ -273,16 +278,21 @@ void MoveCard(TrayIndex start, TrayIndex end)
 	}
 	
 	// lift up arm
+	MoveServo(PWM_ARM_UP);
 	// turn arm to FROM position
 	TurnTable(start);
 	// lift down arm
+	MoveServo(PWM_ARM_DOWN);
 	// vacuum on
 	// lift up arm
+	MoveServo(PWM_ARM_UP);
 	// turn arm to TO position
 	TurnTable(end);
 	// lift down arm
+	MoveServo(PWM_ARM_DOWN);
 	// vacuum off
 	// lift up arm
+	MoveServo(PWM_ARM_UP);
 	// turn arm to home position
 	TurnTable(Index_Home);
 }
