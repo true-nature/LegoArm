@@ -243,7 +243,7 @@ static void TurnTable(TrayIndex card)
 	}
 }
 
-void MoveServo(uint32_t pulse)
+void MoveServo(uint32_t pulse, uint32_t millisec)
 {
   static TIM_OC_InitTypeDef sConfigOC;
 
@@ -253,6 +253,7 @@ void MoveServo(uint32_t pulse)
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+	osDelay(millisec);
 }
 
 /**
@@ -278,21 +279,21 @@ void MoveCard(TrayIndex start, TrayIndex end)
 	}
 	
 	// lift up arm
-	MoveServo(PWM_ARM_UP);
+	MoveServo(PWM_ARM_UP, SERVO_WAIT_DEFAULT_MS);
 	// turn arm to FROM position
 	TurnTable(start);
 	// lift down arm
-	MoveServo(PWM_ARM_DOWN);
+	MoveServo(PWM_ARM_DOWN, SERVO_WAIT_DEFAULT_MS);
 	// vacuum on
 	// lift up arm
-	MoveServo(PWM_ARM_UP);
+	MoveServo(PWM_ARM_UP, SERVO_WAIT_DEFAULT_MS);
 	// turn arm to TO position
 	TurnTable(end);
 	// lift down arm
-	MoveServo(PWM_ARM_DOWN);
+	MoveServo(PWM_ARM_DOWN, SERVO_WAIT_DEFAULT_MS);
 	// vacuum off
 	// lift up arm
-	MoveServo(PWM_ARM_UP);
+	MoveServo(PWM_ARM_UP, SERVO_WAIT_DEFAULT_MS);
 	// turn arm to home position
 	TurnTable(Index_Home);
 }

@@ -64,9 +64,10 @@ typedef enum {
 
 #define PWM_ARM_UP 1200
 #define PWM_ARM_DOWN 1500
+#define SERVO_WAIT_DEFAULT_MS 250
 
 void MoveCard(TrayIndex start, TrayIndex end);
-void MoveServo(uint32_t pulse);
+void MoveServo(uint32_t pulse, uint32_t millisec);
 
 extern osMessageQId  CmdBoxId;
 
