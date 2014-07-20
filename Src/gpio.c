@@ -112,11 +112,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	if (GPIO_Pin == GPIO_PIN_0) {
 		if (toggle == GPIO_PIN_RESET) {
 //			MoveServo(PWM_ARM_UP, 250);
-			MoveCard(Index_Ant, Index_A);
+//			MoveCard(Index_Ant, Index_A);
 			MoveServo(PWM_ARM_DOWN, 250);
 		} else {
 			MoveServo(PWM_ARM_UP, 250);
-			MoveCard(Index_A, Index_Ant);
+//			MoveCard(Index_A, Index_Ant);
 //			MoveServo(PWM_ARM_DOWN, 250);
 		}
 		toggle = (toggle ? GPIO_PIN_RESET : GPIO_PIN_SET);

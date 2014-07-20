@@ -98,7 +98,7 @@ CommandOp CmdDic[] = {
 #define STEP_PER_30DEG	(STEP_PER_REV/12)
 
 // PM step correspnding to TrayAngle
-uint16_t TrayStepPos[] = {
+int16_t TrayStepPos[] = {
 	0,
 	STEP_PER_30DEG, 
 	2*STEP_PER_30DEG,
@@ -106,43 +106,37 @@ uint16_t TrayStepPos[] = {
 	4*STEP_PER_30DEG,
 	5*STEP_PER_30DEG
 };
-uint16_t currStepPos;
+int16_t currStepPos;
 
-#define I2C_ADDR_PH_A_w	((0x63<<1)+0)
-#define I2C_ADDR_PH_B_w	((0x64<<1)+0)
+#define I2C_ADDR_PH_A_w	(0xC6)
+#define I2C_ADDR_PH_B_w	(0xC2)
 #define I2C_SUB_CTRL	0
 #define VSET_MIN	0x06
 #define VSET_MAX	0x3F
-#define VSET	VSET_MIN
+#define VSET	VSET_MAX
 #define OUT_POS	((VSET<<2)+1)
 #define OUT_NEG	((VSET<<2)+2)
 
 #define PHASE_COUNT	4
-// [PAHSE][A/B][data]
-uint8_t PM_PHASE[PHASE_COUNT][2][2] = {
-	// phase1
-	{
-		{I2C_SUB_CTRL, OUT_POS},
-		{I2C_SUB_CTRL, OUT_NEG}
-	}
-	// phase2
-	, {
-		{I2C_SUB_CTRL, OUT_POS},
-		{I2C_SUB_CTRL, OUT_POS}
-	}
-	// phase3
-	, {
-		{I2C_SUB_CTRL, OUT_NEG},
-		{I2C_SUB_CTRL, OUT_POS}
-	}
-	// phase4
-	, {
-		{I2C_SUB_CTRL, OUT_NEG},
-		{I2C_SUB_CTRL, OUT_NEG}
-	}
+uint8_t SubAdData[2][2] = {
+	// NEGATIVE
+	{I2C_SUB_CTRL, OUT_NEG},
+	// POSITIVE
+	{I2C_SUB_CTRL, OUT_POS}
 };
-static uint16_t currentPhase;
-#define INTER_PHASE_DELAY_MS	100
+// [PAHSE][A/B][data]
+uint8_t PM_PHASE[PHASE_COUNT][2] = {
+	// phase1
+	{1, 0}
+	// phase2
+	, {1,	1}
+	// phase3
+	, {0,	1}
+	// phase4
+	, {0,	0}
+};
+static int16_t currentPhase;
+#define INTER_PHASE_DELAY_MS	250
 
 /**
  * @brief Set LD3 to LE10 state according to ascii code.
@@ -218,28 +212,37 @@ static TrayIndex Chr2CardNo(char c)
 	return card;
 }
 
-static void TurnTable(TrayIndex card)
+static void TurnTable(TrayIndex card, uint32_t millisec)
 {
 	int16_t dst = TrayStepPos[card];
-	int16_t diff = dst - currStepPos;
 	int16_t step = 0;
-	if (diff > 0) {
+	int16_t countdown = 0;
+	if (dst > currStepPos) {
 		step = 1;
-	} else if (step < 0) {
+		countdown = dst - currStepPos;
+	} else if (dst < currStepPos) {
 		step = -1;
+		countdown = currStepPos - dst;
+	} else {
+		return;
 	}
 	
-	while (dst != currStepPos) {
-		uint16_t nextPhase = (currentPhase + step) % PHASE_COUNT;
-		if (HAL_I2C_Master_Transmit(&hi2c1, I2C_ADDR_PH_A_w, PM_PHASE[nextPhase][0], 2, 25) != osOK) {
+	while (countdown != 0) {
+		int16_t nextPhase = (currentPhase + step) % PHASE_COUNT;
+		if (nextPhase < 0) {
+			nextPhase += PHASE_COUNT;
+		}
+		PutChr(nextPhase + '0');
+		if (HAL_I2C_Master_Transmit(&hi2c1, I2C_ADDR_PH_A_w,  SubAdData[PM_PHASE[nextPhase][1]], 2, 10) != osOK) {
 			break;
 		}
-//		if (HAL_I2C_Master_Transmit(&hi2c2, I2C_ADDR_PH_B_w, PM_PHASE[nextPhase][1], 2, 25) != osOK) {
-//			break;
-//		}
+		if (HAL_I2C_Master_Transmit(&hi2c1, I2C_ADDR_PH_B_w, SubAdData[PM_PHASE[nextPhase][0]], 2, 10) != osOK) {
+			break;
+		}
 		currentPhase = nextPhase;
 		currStepPos += step;
-		osDelay(INTER_PHASE_DELAY_MS);
+		countdown--;
+		osDelay(millisec);
 	}
 }
 
@@ -262,40 +265,32 @@ void MoveServo(uint32_t pulse, uint32_t millisec)
 void MoveCard(TrayIndex start, TrayIndex end)
 {
 	if (start > Index_D) {
-		PutStr("Invalid start position : ");
-		PutChr(start + '0');
-		PutStr(MSG_CRLF);
+		PutStr("Invalid start position.\r\n");
 		return;
 	}
-	if (end > 4) {
-		PutStr("Invalid end position : ");
-		PutChr(end + '0');
-		PutStr(MSG_CRLF);
-		return;
-	}
-	if (start == end) {
-		PutStr(MAG_INVALID_PARAMETER);
+	if (end > Index_D) {
+		PutStr("Invalid end position.\r\n");
 		return;
 	}
 	
 	// lift up arm
 	MoveServo(PWM_ARM_UP, SERVO_WAIT_DEFAULT_MS);
 	// turn arm to FROM position
-	TurnTable(start);
+	TurnTable(start, INTER_PHASE_DELAY_MS);
 	// lift down arm
 	MoveServo(PWM_ARM_DOWN, SERVO_WAIT_DEFAULT_MS);
 	// vacuum on
 	// lift up arm
 	MoveServo(PWM_ARM_UP, SERVO_WAIT_DEFAULT_MS);
 	// turn arm to TO position
-	TurnTable(end);
+	TurnTable(end, INTER_PHASE_DELAY_MS);
 	// lift down arm
 	MoveServo(PWM_ARM_DOWN, SERVO_WAIT_DEFAULT_MS);
 	// vacuum off
 	// lift up arm
 	MoveServo(PWM_ARM_UP, SERVO_WAIT_DEFAULT_MS);
 	// turn arm to home position
-	TurnTable(Index_Home);
+	TurnTable(Index_Home, INTER_PHASE_DELAY_MS);
 }
 
 /**
