@@ -92,19 +92,6 @@ CommandOp CmdDic[] = {
 	{NULL, NULL}
 };
 
-// card position index
-typedef enum {
-	Index_Ant = 0,
-	Index_Home,
-	Index_A,
-	Index_B,
-	Index_C,
-	Index_F = Index_C,
-	Index_D,
-	Index_V = Index_D,
-	Index_MAX = Index_D
-} TrayIndex;
-
 // turn table angle: [0..95]
 #define STEP_PER_REV	96
 #define STEP_PER_30DEG	(STEP_PER_REV/12)
@@ -178,7 +165,10 @@ static void PutStr(char *str)
 	UsbUserBufferDef *txBufPtr = &UsbUserTxBuffer[idxTxBuffer];
 	strlcpy((char *)txBufPtr->Buffer, str, MAX_COMMAND_LENGTH);
 	txBufPtr->Length = len;
-	while (CDC_Transmit_FS(txBufPtr->Buffer, len) == USBD_BUSY) {}
+	uint16_t retry = 1000;
+	while (CDC_Transmit_FS(txBufPtr->Buffer, len) == USBD_BUSY && retry-- > 0) {
+		osDelay(1);
+	}
 	idxTxBuffer = (idxTxBuffer + 1) % TX_BUFFER_COUNT;
 }
 
@@ -190,7 +180,10 @@ static void PutChr(char c)
 	UsbUserBufferDef *txBufPtr = &UsbUserTxBuffer[idxTxBuffer];
 	txBufPtr->Buffer[0] = c;
 	txBufPtr->Length = 1;
-	while (CDC_Transmit_FS(txBufPtr->Buffer, 1) == USBD_BUSY) {}
+	uint16_t retry = 1000;
+	while (CDC_Transmit_FS(txBufPtr->Buffer, 1) == USBD_BUSY && retry-- > 0) {
+		osDelay(1);
+	}
 	idxTxBuffer = (idxTxBuffer + 1) % TX_BUFFER_COUNT;
 }
 
@@ -249,10 +242,18 @@ static void TurnTable(TrayIndex card)
 	}
 }
 
+static void UpArm()
+{
+}
+
+static void DownArm()
+{
+}
+
 /**
 	* 0: home, 1:A, 2:B, 3:C, 4:D
 	*/
-static void MoveCard(TrayIndex start, TrayIndex end)
+void MoveCard(TrayIndex start, TrayIndex end)
 {
 	if (start > Index_D) {
 		PutStr("Invalid start position : ");
@@ -270,11 +271,6 @@ static void MoveCard(TrayIndex start, TrayIndex end)
 		PutStr(MAG_INVALID_PARAMETER);
 		return;
 	}
-	PutStr("Move card from ");
-	PutChr(start + '0');
-	PutStr(" to ");
-	PutChr(end + '0');
-	PutStr(".\r\n");
 	
 	// lift up arm
 	// turn arm to FROM position
@@ -326,6 +322,8 @@ void cmdPutOn(CommandBufferDef *cmd)
 	// 0: home, 1:A, 2:B, 3:C, 4:D
 	TrayIndex card = Chr2CardNo(cmd->Arg[0]);
 	if (card >= MIN_CARD_POS && card <= MAX_CARD_POS) {
+		PutChr(card + '0');
+		PutStr(" -> 0.\r\n");
 		MoveCard(card, Index_Ant);
 	} else {
 		PutStr(MAG_INVALID_PARAMETER);
@@ -345,6 +343,9 @@ void cmdTakeOff(CommandBufferDef *cmd)
 	// 0: home, 1:A, 2:B, 3:C, 4:D
 	TrayIndex card = Chr2CardNo(cmd->Arg[0]);
 	if (card >= MIN_CARD_POS && card <= MAX_CARD_POS) {
+		PutStr("0 -> ");
+		PutChr(card + '0');
+		PutStr(" .\r\n");
 		MoveCard(Index_Ant, card);
 	} else {
 		PutStr(MAG_INVALID_PARAMETER);
@@ -423,8 +424,8 @@ static void LookupCommand(CommandBufferDef *cmd)
 		{
 			if (matchCount == 1 && cmd->CmdLength <= strlen(matched->name) && strncmp(matched->name, cmd->Buffer, cmd->CmdLength) == 0) {
 				cmd->func = matched->func;
-				matched->func(cmd);
-				osMessagePut(RcvBoxId, (uint32_t)cmd, 0);
+//				matched->func(cmd);
+				osMessagePut(CmdBoxId, (uint32_t)cmd, 0);
 			} else {
 				PutStr("SYNTAX ERROR\r\n");
 			}

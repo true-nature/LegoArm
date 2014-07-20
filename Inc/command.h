@@ -49,6 +49,21 @@ typedef struct CommandBufferDef {
 	void (*func)(struct CommandBufferDef *cmd);
 } CommandBufferDef;
 
+// card position index
+typedef enum {
+	Index_Ant = 0,
+	Index_Home,
+	Index_A,
+	Index_B,
+	Index_C,
+	Index_F = Index_C,
+	Index_D,
+	Index_V = Index_D,
+	Index_MAX = Index_D
+} TrayIndex;
+
+void MoveCard(TrayIndex start, TrayIndex end);
+
 extern osMessageQId  CmdBoxId;
 
 extern void ParseInputChars(UsbUserBufferDef *rxPtr);

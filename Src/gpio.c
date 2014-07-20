@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : gpio.c
-  * Date               : 20/07/2014 08:45:03
+  * Date               : 20/07/2014 13:03:11
   * Description        : This file provides code for the configuration
   *                      of all used GPIO pins.
   ******************************************************************************
@@ -36,7 +36,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "gpio.h"
 /* USER CODE BEGIN 0 */
-
+#include "command.h"
 /* USER CODE END 0 */
 
 /*----------------------------------------------------------------------------*/
@@ -65,10 +65,8 @@ void MX_GPIO_Init(void)
   __GPIOD_CLK_ENABLE();
   __GPIOB_CLK_ENABLE();
 
-  /*Configure GPIO pins : PE2 PE4 PE5 PE0 
-                           PE1 */
-  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_0 
-                          |GPIO_PIN_1;
+  /*Configure GPIO pins : PE2 PE4 PE5 PE1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
@@ -86,13 +84,41 @@ void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : PA0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  /* Sets the priority grouping field */
+  HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 6, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 
 }
 
 /* USER CODE BEGIN 2 */
+
+/**
+  * @brief  EXTI line detection callbacks.
+  * @param GPIO_Pin: Specifies the pins connected EXTI line
+  * @retval None
+  */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  /* NOTE : This function Should not be modified, when the callback is needed,
+            the HAL_GPIO_EXTI_Callback could be implemented in the user file
+   */ 
+	static GPIO_PinState toggle = GPIO_PIN_RESET;
+	if (GPIO_Pin == GPIO_PIN_0) {
+		if (toggle == GPIO_PIN_RESET) {
+			MoveCard(Index_Ant, Index_A);
+		} else {
+			MoveCard(Index_A, Index_Ant);
+		}
+		toggle = (toggle ? GPIO_PIN_RESET : GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_10, toggle);
+	}
+}
 
 /* USER CODE END 2 */
 

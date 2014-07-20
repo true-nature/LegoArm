@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * @file    stm32f3xx_it.h
-  * @date    20/07/2014 08:45:07
+  * @date    20/07/2014 13:03:14
   * @brief   This file contains the headers of the interrupt handlers.
   ******************************************************************************
   *
@@ -46,6 +46,7 @@
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
 
+void EXTI0_IRQHandler(void);
 void SysTick_Handler(void);
 void USB_LP_CAN_RX0_IRQHandler(void);
 

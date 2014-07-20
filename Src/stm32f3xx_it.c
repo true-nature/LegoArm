@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * @file    stm32f3xx_it.c
-  * @date    20/07/2014 08:45:07
+  * @date    20/07/2014 13:03:14
   * @brief   Interrupt Service Routines.
   ******************************************************************************
   *
@@ -45,6 +45,16 @@ extern PCD_HandleTypeDef hpcd_USB_FS;
 /******************************************************************************/
 /*            Cortex-M4 Processor Interruption and Exception Handlers         */ 
 /******************************************************************************/
+
+/**
+* @brief This function handles EXTI Line0 interrupt.
+*/
+void EXTI0_IRQHandler(void)
+{
+  HAL_NVIC_ClearPendingIRQ(EXTI0_IRQn);
+  
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+}
 
 /**
 * @brief This function handles System tick timer.
