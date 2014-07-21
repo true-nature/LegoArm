@@ -120,7 +120,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 //			MoveServo(PWM_ARM_DOWN, 250);
 		}
 		toggle = (toggle ? GPIO_PIN_RESET : GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_10, toggle);
+//		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_10, toggle);
 	}
 }
 

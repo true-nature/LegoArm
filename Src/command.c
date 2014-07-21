@@ -131,6 +131,9 @@ static const uint8_t PM_PHASE[PHASE_COUNT][2] = {
 static int16_t currentPhase;
 #define INTER_PHASE_DELAY_MS	1
 
+#define VACUUM_ON_DELAY_MS 800
+#define VACUUM_OFF_DELAY_MS 400
+
 /**
  * @brief Set LD3 to LE10 state according to ascii code.
  * @param ch: ascii code
@@ -311,6 +314,13 @@ void MoveServo(uint32_t pulse, uint32_t millisec)
   HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
 	osDelay(millisec);
+	HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
+}
+
+void Vacuum(GPIO_PinState isVacuum, uint32_t millisec)
+{
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_10, isVacuum);
+	osDelay(millisec);
 }
 
 /**
@@ -334,6 +344,7 @@ void MoveCard(TrayIndex start, TrayIndex end)
 	// lift down arm
 	MoveServo(PWM_ARM_DOWN, SERVO_WAIT_DEFAULT_MS);
 	// vacuum on
+	Vacuum(GPIO_PIN_SET, VACUUM_ON_DELAY_MS);
 	// lift up arm
 	MoveServo(PWM_ARM_UP, SERVO_WAIT_DEFAULT_MS);
 	// turn arm to TO position
@@ -341,6 +352,7 @@ void MoveCard(TrayIndex start, TrayIndex end)
 	// lift down arm
 	MoveServo(PWM_ARM_DOWN, SERVO_WAIT_DEFAULT_MS);
 	// vacuum off
+	Vacuum(GPIO_PIN_RESET, VACUUM_OFF_DELAY_MS);
 	// lift up arm
 	MoveServo(PWM_ARM_UP, SERVO_WAIT_DEFAULT_MS);
 	// turn arm to home position
@@ -452,6 +464,9 @@ void StartMotorThread(void const * argument)
 {
 	osEvent evt;
 	CommandBufferDef *cmdBuf;
+	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+	osDelay(500);
+	HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
   /* Infinite loop */
   for(;;)
   {
