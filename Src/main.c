@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : main.c
-  * Date               : 20/07/2014 13:03:14
+  * Date               : 21/07/2014 12:47:27
   * Description        : Main program body
   ******************************************************************************
   *
@@ -78,10 +78,8 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
-  MX_I2C2_Init();
   MX_SPI1_Init();
   MX_TIM3_Init();
-  MX_TIM4_Init();
 
   /* USER CODE BEGIN 2 */
  	osMessageQDef(RcvBox, RX_BUFFER_COUNT, uint32_t);
@@ -141,10 +139,8 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
   HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
 
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB|RCC_PERIPHCLK_I2C1
-                              |RCC_PERIPHCLK_I2C2;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB|RCC_PERIPHCLK_I2C1;
   PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_HSI;
-  PeriphClkInit.I2c2ClockSelection = RCC_I2C2CLKSOURCE_HSI;
   PeriphClkInit.USBClockSelection = RCC_USBPLLCLK_DIV1_5;
   HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit);
 

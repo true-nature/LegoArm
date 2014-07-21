@@ -311,10 +311,10 @@ void MoveServo(uint32_t pulse, uint32_t millisec)
   sConfigOC.Pulse = pulse;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+  HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 	osDelay(millisec);
-	HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
 }
 
 void Vacuum(GPIO_PinState isVacuum, uint32_t millisec)
@@ -464,9 +464,9 @@ void StartMotorThread(void const * argument)
 {
 	osEvent evt;
 	CommandBufferDef *cmdBuf;
-	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 	osDelay(500);
-	HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
+	HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
   /* Infinite loop */
   for(;;)
   {
