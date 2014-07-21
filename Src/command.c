@@ -59,7 +59,7 @@ static uint16_t currentCmdIdx;
 struct {
 	GPIO_TypeDef* GPIOx;
 	uint16_t GPIO_Pin;
-} GpioLedMap[8] = {
+} static const GpioLedMap[8] = {
 	{GPIOE, GPIO_PIN_9},		/* LD3 */
 	{GPIOE, GPIO_PIN_8},		/* LD4 */
 	{GPIOE, GPIO_PIN_15},		/* LD6 */
@@ -70,18 +70,18 @@ struct {
 	{GPIOE, GPIO_PIN_10},		/* LD5 */
 };
 
-void cmdVersion(CommandBufferDef *cmd);
-void cmdRelocate(CommandBufferDef *cmd);
-void cmdPutOn(CommandBufferDef *cmd);
-void cmdTakeOff(CommandBufferDef *cmd);
-void cmdHelp(CommandBufferDef *cmd);
+static void cmdVersion(CommandBufferDef *cmd);
+static void cmdRelocate(CommandBufferDef *cmd);
+static void cmdPutOn(CommandBufferDef *cmd);
+static void cmdTakeOff(CommandBufferDef *cmd);
+static void cmdHelp(CommandBufferDef *cmd);
 
 typedef struct  {
-	const char *name;
-	void (*func)(CommandBufferDef *cmd);
+	const char *const name;
+	void (*const func)(CommandBufferDef *cmd);
 } CommandOp;
 
-CommandOp CmdDic[] = {
+static const CommandOp CmdDic[] = {
 	{"PUTON", cmdPutOn},
 	{"TAKEOFF", cmdTakeOff},
 	{"RELOCATE", cmdRelocate},
@@ -95,7 +95,7 @@ CommandOp CmdDic[] = {
 #define STEP_PER_30DEG	(STEP_PER_REV/12)
 
 // PM step correspnding to TrayAngle
-int16_t TrayStepPos[] = {
+static const int16_t TrayStepPos[] = {
 	0,
 	STEP_PER_30DEG, 
 	2*STEP_PER_30DEG,
@@ -103,26 +103,22 @@ int16_t TrayStepPos[] = {
 	4*STEP_PER_30DEG,
 	5*STEP_PER_30DEG
 };
-int16_t currStepPos;
+static int16_t currStepPos;
 
 #define I2C_ADDR_PH_A_w	(0xC6)
 #define I2C_ADDR_PH_B_w	(0xC2)
 #define I2C_SUB_CTRL	0
 #define VSET_MIN	0x06
 #define VSET_MAX	0x3F
-#define VSET	VSET_MAX
-#define OUT_POS	((VSET<<2)+1)
-#define OUT_NEG	((VSET<<2)+2)
+#define OUT_POS_MAX	((VSET_MAX<<2)+1)
+#define OUT_NEG_MAX	((VSET_MAX<<2)+2)
+#define OUT_POS_MIN	((VSET_MIN<<2)+1)
+#define OUT_NEG_MIN	((VSET_MIN<<2)+2)
 
+static uint8_t SubAdDataNeutral[2] = 	{I2C_SUB_CTRL, ((VSET_MIN<<2)+0)};
 #define PHASE_COUNT	4
-uint8_t SubAdData[2][2] = {
-	// NEGATIVE
-	{I2C_SUB_CTRL, OUT_NEG},
-	// POSITIVE
-	{I2C_SUB_CTRL, OUT_POS}
-};
 // [PAHSE][A/B][data]
-uint8_t PM_PHASE[PHASE_COUNT][2] = {
+static const uint8_t PM_PHASE[PHASE_COUNT][2] = {
 	// phase1
 	{1, 0}
 	// phase2
@@ -133,7 +129,7 @@ uint8_t PM_PHASE[PHASE_COUNT][2] = {
 	, {0,	0}
 };
 static int16_t currentPhase;
-#define INTER_PHASE_DELAY_MS	25
+#define INTER_PHASE_DELAY_MS	1
 
 /**
  * @brief Set LD3 to LE10 state according to ascii code.
@@ -209,6 +205,61 @@ static TrayIndex Chr2CardNo(char c)
 	return card;
 }
 
+/**
+* devaddr: target device address.
+  */
+static void FaderStep(uint16_t devAddr, int16_t startPolarity)
+{
+	HAL_StatusTypeDef status = HAL_OK;
+	uint8_t step = 0x04;
+	uint8_t data[2];
+	uint8_t start, goal;
+	data[0] = I2C_SUB_CTRL;
+
+	// fade out
+	start = (VSET_MAX<<2);
+	goal = (VSET_MIN<<2);
+	if (startPolarity == 0) {
+		start += 1;
+		goal += 1;
+	} else {
+		start += 2;
+		goal += 2;
+	}
+	for (uint8_t value = start; value >= goal; value -= step)
+	{
+		data[1] = value;
+		status = HAL_I2C_Master_Transmit(&hi2c1, devAddr, data, 2, 10);
+		if (status != HAL_OK) {
+			break;
+		}
+		taskYIELD();
+	}
+
+	HAL_I2C_Master_Transmit(&hi2c1, devAddr, SubAdDataNeutral, 2, 10);
+	osDelay(1);
+
+	// fade in
+	start = (VSET_MIN<<2);
+	goal = (VSET_MAX<<2);
+	if (startPolarity == 0) {
+		start += 2;
+		goal += 2;
+	} else {
+		start += 1;
+		goal += 1;
+	}
+	for (uint16_t value = start; value < goal; value += step)
+	{
+		data[1] = (0xFF & value);
+		status = HAL_I2C_Master_Transmit(&hi2c1, devAddr, data, 2, 10);
+		if (status != HAL_OK) {
+			break;
+		}
+		taskYIELD();
+	}
+}
+
 static void TurnTable(TrayIndex card, uint32_t millisec)
 {
 	int16_t dst = TrayStepPos[card];
@@ -224,17 +275,23 @@ static void TurnTable(TrayIndex card, uint32_t millisec)
 		return;
 	}
 	
+	uint8_t currA = PM_PHASE[currentPhase][0];
+	uint8_t currB = PM_PHASE[currentPhase][1];
+	uint8_t nextA, nextB;
 	while (countdown != 0) {
 		int16_t nextPhase = (currentPhase + step) % PHASE_COUNT;
 		if (nextPhase < 0) {
 			nextPhase += PHASE_COUNT;
 		}
-		PutChr(nextPhase + '0');
-		if (HAL_I2C_Master_Transmit(&hi2c1, I2C_ADDR_PH_A_w, SubAdData[PM_PHASE[nextPhase][0]], 2, 10) != osOK) {
-			break;
+		nextA = PM_PHASE[nextPhase][0];
+		nextB = PM_PHASE[nextPhase][1];
+		if (currA != nextA) {
+			FaderStep(I2C_ADDR_PH_A_w, currA);
+			currA = nextA;
 		}
-		if (HAL_I2C_Master_Transmit(&hi2c1, I2C_ADDR_PH_B_w, SubAdData[PM_PHASE[nextPhase][1]], 2, 10) != osOK) {
-			break;
+		if (currB != nextB) {
+			FaderStep(I2C_ADDR_PH_B_w, currB);
+			currB = nextB;
 		}
 		currentPhase = nextPhase;
 		currStepPos += step;
@@ -293,7 +350,7 @@ void MoveCard(TrayIndex start, TrayIndex end)
 /**
   * Print version number.
   */
-void cmdVersion(CommandBufferDef *cmd)
+static void cmdVersion(CommandBufferDef *cmd)
 {
 	PutStr(VERSION_STR);
 	PutStr(MSG_CRLF);
@@ -302,13 +359,16 @@ void cmdVersion(CommandBufferDef *cmd)
 /**
   * Re-scan mechanical limit position.
   */
-void cmdRelocate(CommandBufferDef *cmd)
+static void cmdRelocate(CommandBufferDef *cmd)
 {
 	PutStr("Re-scan mechanical limit position.\r\n");
 	// lift up arm
+	MoveServo(PWM_ARM_UP, SERVO_WAIT_DEFAULT_MS);
 	// turn arm to right while mechanical limit
 	//    sense photo reflector
+	TurnTable(Index_Ant, INTER_PHASE_DELAY_MS);
 	// turn arm to home position
+	TurnTable(Index_Home, INTER_PHASE_DELAY_MS);
 }
 
 
@@ -317,7 +377,7 @@ void cmdRelocate(CommandBufferDef *cmd)
 	*
 	* PUTON <A/B/C/D>
   */
-void cmdPutOn(CommandBufferDef *cmd)
+static void cmdPutOn(CommandBufferDef *cmd)
 {
 	if (cmd->Arg == NULL) {
 		PutStr(MSG_EMPTY_ARGUMENT);
@@ -338,7 +398,7 @@ void cmdPutOn(CommandBufferDef *cmd)
 	*
 	* TAKEOFF <A/B/C/D>
   */
-void cmdTakeOff(CommandBufferDef *cmd)
+static void cmdTakeOff(CommandBufferDef *cmd)
 {
 	if (cmd->Arg == NULL) {
 		PutStr(MSG_EMPTY_ARGUMENT);
@@ -358,7 +418,7 @@ void cmdTakeOff(CommandBufferDef *cmd)
 /**
   * Show command help.
   */
-void cmdHelp(CommandBufferDef *cmd)
+static void cmdHelp(CommandBufferDef *cmd)
 {
 	PutStr("Show command help.\r\n");
 }
@@ -405,7 +465,7 @@ void StartMotorThread(void const * argument)
 }
 static void LookupCommand(CommandBufferDef *cmd)
 {
-	CommandOp *cmdPtr, *matched;
+	const CommandOp *cmdPtr, *matched;
 	uint16_t matchCount;
 	SplitArg(cmd);
 	for (int len = 1; len <= cmd->CmdLength; len++) {
@@ -427,7 +487,6 @@ static void LookupCommand(CommandBufferDef *cmd)
 		{
 			if (matchCount == 1 && cmd->CmdLength <= strlen(matched->name) && strncmp(matched->name, cmd->Buffer, cmd->CmdLength) == 0) {
 				cmd->func = matched->func;
-//				matched->func(cmd);
 				osMessagePut(CmdBoxId, (uint32_t)cmd, 0);
 			} else {
 				PutStr("SYNTAX ERROR\r\n");
