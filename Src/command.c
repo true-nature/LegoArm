@@ -56,6 +56,7 @@
 static CommandBufferDef CmdBuf[MAX_CMD_BUF_COUNT];
 static uint16_t currentCmdIdx;
 
+static const uint8_t HexChr[] = "0123456789ABCDEF";
 struct {
 	GPIO_TypeDef* GPIOx;
 	uint16_t GPIO_Pin;
@@ -72,6 +73,7 @@ struct {
 
 static void cmdVersion(CommandBufferDef *cmd);
 static void cmdRelocate(CommandBufferDef *cmd);
+static void cmdStepRotate(CommandBufferDef *cmd);
 static void cmdPutOn(CommandBufferDef *cmd);
 static void cmdTakeOff(CommandBufferDef *cmd);
 static void cmdHelp(CommandBufferDef *cmd);
@@ -85,6 +87,7 @@ static const CommandOp CmdDic[] = {
 	{"PUTON", cmdPutOn},
 	{"TAKEOFF", cmdTakeOff},
 	{"RELOCATE", cmdRelocate},
+	{"STEP", cmdStepRotate},
 	{"HELP", cmdHelp},
 	{"VERSION", cmdVersion},
 	{NULL, NULL}
@@ -129,7 +132,7 @@ static const uint8_t PM_PHASE[PHASE_COUNT][2] = {
 	, {0,	0}
 };
 static int16_t currentPhase;
-#define INTER_PHASE_DELAY_MS	1
+#define INTER_PHASE_DELAY_MS	5
 
 #define GPIO_PIN_VACUUM_PUMP GPIO_PIN_10
 #define VACUUM_ON_DELAY_MS 800
@@ -177,6 +180,13 @@ static void PutChr(char c)
 		osDelay(1);
 	}
 	idxTxBuffer = (idxTxBuffer + 1) % TX_BUFFER_COUNT;
+}
+
+static void PutUint16(uint16_t value)
+{
+	for (int s = 28; s >= 0; s -= 4) {
+		PutChr(HexChr[0x0F & (value >> s)]);
+	}
 }
 
 
@@ -264,9 +274,8 @@ static void FaderStep(uint16_t devAddr, int16_t startPolarity)
 	}
 }
 
-static void TurnTable(TrayIndex card, uint32_t millisec)
+static void TurnTable(int16_t dst, uint32_t millisec)
 {
-	int16_t dst = TrayStepPos[card];
 	int16_t step = 0;
 	int16_t countdown = 0;
 	if (dst > currStepPos) {
@@ -341,7 +350,7 @@ static void MoveCard(TrayIndex start, TrayIndex end)
 	// lift up arm
 	MoveServo(PWM_ARM_UP, SERVO_WAIT_DEFAULT_MS);
 	// turn arm to FROM position
-	TurnTable(start, INTER_PHASE_DELAY_MS);
+	TurnTable(TrayStepPos[start], INTER_PHASE_DELAY_MS);
 	// lift down arm
 	MoveServo(PWM_ARM_DOWN, SERVO_WAIT_DEFAULT_MS);
 	// vacuum on
@@ -349,7 +358,7 @@ static void MoveCard(TrayIndex start, TrayIndex end)
 	// lift up arm
 	MoveServo(PWM_ARM_UP, SERVO_WAIT_DEFAULT_MS);
 	// turn arm to TO position
-	TurnTable(end, INTER_PHASE_DELAY_MS);
+	TurnTable(TrayStepPos[end], INTER_PHASE_DELAY_MS);
 	// lift down arm
 	MoveServo(PWM_ARM_DOWN, SERVO_WAIT_DEFAULT_MS);
 	// vacuum off
@@ -357,7 +366,8 @@ static void MoveCard(TrayIndex start, TrayIndex end)
 	// lift up arm
 	MoveServo(PWM_ARM_UP, SERVO_WAIT_DEFAULT_MS);
 	// turn arm to home position
-	TurnTable(Index_Home, INTER_PHASE_DELAY_MS);
+	TurnTable(TrayStepPos[Index_Home], INTER_PHASE_DELAY_MS);
+	PutUint16(currStepPos);
 }
 
 /**
@@ -379,11 +389,27 @@ static void cmdRelocate(CommandBufferDef *cmd)
 	MoveServo(PWM_ARM_UP, SERVO_WAIT_DEFAULT_MS);
 	// turn arm to right while mechanical limit
 	//    sense photo reflector
-	TurnTable(Index_Ant, INTER_PHASE_DELAY_MS);
+	TurnTable(TrayStepPos[Index_Ant], INTER_PHASE_DELAY_MS);
 	// turn arm to home position
-	TurnTable(Index_Home, INTER_PHASE_DELAY_MS);
+	TurnTable(TrayStepPos[Index_Home], INTER_PHASE_DELAY_MS);
 }
 
+static void cmdStepRotate(CommandBufferDef *cmd)
+{
+	if (cmd->Arg == NULL) {
+		PutStr(MSG_EMPTY_ARGUMENT);
+	}
+	if (cmd->Arg[0] == 'L') {
+		TurnTable(currStepPos + 1, INTER_PHASE_DELAY_MS);
+		currStepPos--;
+	} else if (cmd->Arg[0] == 'R') {
+		TurnTable(currStepPos - 1, INTER_PHASE_DELAY_MS);
+		currStepPos++;
+	} else {
+		PutStr(MAG_INVALID_PARAMETER);
+	}
+	PutUint16(currStepPos);
+}
 
 /**
   * Put a card on the RF antenna.
