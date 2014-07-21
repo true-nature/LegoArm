@@ -63,8 +63,8 @@ typedef enum {
 	Index_MAX_CARD = Index_D
 } TrayIndex;
 
-#define PWM_ARM_UP 1200
-#define PWM_ARM_DOWN 1500
+#define PWM_ARM_UP 1600
+#define PWM_ARM_DOWN 1300
 #define SERVO_WAIT_DEFAULT_MS 400
 
 extern osMessageQId  CmdBoxId;
