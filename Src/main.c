@@ -85,7 +85,7 @@ int main(void)
  	osMessageQDef(RcvBox, RX_BUFFER_COUNT, uint32_t);
 	RcvBoxId = osMessageCreate(osMessageQ(RcvBox), NULL);
 
- 	osMessageQDef(CmdBoxId, RX_BUFFER_COUNT, uint32_t);
+ 	osMessageQDef(CmdBoxId, MAX_CMD_BUF_COUNT, uint32_t);
 	CmdBoxId = osMessageCreate(osMessageQ(CmdBoxId), NULL);
 
   osThreadDef(MOTOR_Thread, StartMotorThread, osPriorityNormal, 0, configMINIMAL_STACK_SIZE);

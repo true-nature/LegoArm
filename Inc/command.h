@@ -48,6 +48,7 @@ typedef struct CommandBufferDef {
 	char *Arg;
 	void (*func)(struct CommandBufferDef *cmd);
 } CommandBufferDef;
+#define MAX_CMD_BUF_COUNT	3
 
 // card position index
 typedef enum {
@@ -63,8 +64,8 @@ typedef enum {
 	Index_MAX_CARD = Index_D
 } TrayIndex;
 
-#define PWM_ARM_UP 1500
-#define PWM_ARM_DOWN 1300
+#define PWM_ARM_UP (1500-1)
+#define PWM_ARM_DOWN (1300-1)
 #define SERVO_WAIT_DEFAULT_MS 400
 
 extern osMessageQId  CmdBoxId;
