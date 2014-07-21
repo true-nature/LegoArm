@@ -37,7 +37,7 @@
 #include "cmsis_os.h"
 #include "usbd_cdc_buf.h"
 
-#define VERSION_STR "0.1"
+#define VERSION_STR "LegoArm version 0.1"
 
 #define MAX_COMMAND_LENGTH 127
 #define MAX_CMD_BUF_COUNT	3
@@ -66,9 +66,6 @@ typedef enum {
 #define PWM_ARM_UP 1200
 #define PWM_ARM_DOWN 1500
 #define SERVO_WAIT_DEFAULT_MS 400
-
-void MoveCard(TrayIndex start, TrayIndex end);
-void MoveServo(uint32_t pulse, uint32_t millisec);
 
 extern osMessageQId  CmdBoxId;
 

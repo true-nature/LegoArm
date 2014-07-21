@@ -131,6 +131,7 @@ static const uint8_t PM_PHASE[PHASE_COUNT][2] = {
 static int16_t currentPhase;
 #define INTER_PHASE_DELAY_MS	1
 
+#define GPIO_PIN_VACUUM_PUMP GPIO_PIN_10
 #define VACUUM_ON_DELAY_MS 800
 #define VACUUM_OFF_DELAY_MS 400
 
@@ -317,16 +318,16 @@ void MoveServo(uint32_t pulse, uint32_t millisec)
 	HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
 }
 
-void Vacuum(GPIO_PinState isVacuum, uint32_t millisec)
+static void Vacuum(GPIO_PinState isVacuum, uint32_t millisec)
 {
-	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_10, isVacuum);
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_VACUUM_PUMP, isVacuum);
 	osDelay(millisec);
 }
 
 /**
 	* 0: home, 1:A, 2:B, 3:C, 4:D
 	*/
-void MoveCard(TrayIndex start, TrayIndex end)
+static void MoveCard(TrayIndex start, TrayIndex end)
 {
 	if (start > Index_MAX_CARD) {
 		PutStr("Invalid start position.\r\n");
@@ -398,7 +399,7 @@ static void cmdPutOn(CommandBufferDef *cmd)
 	TrayIndex card = Chr2CardNo(cmd->Arg[0]);
 	if (card >= Index_MIN_CARD && card <= Index_MAX_CARD) {
 		PutChr(card + '0');
-		PutStr(" -> 0.\r\n");
+		PutStr(" -> 0\r\n");
 		MoveCard(card, Index_Ant);
 	} else {
 		PutStr(MAG_INVALID_PARAMETER);
@@ -420,7 +421,7 @@ static void cmdTakeOff(CommandBufferDef *cmd)
 	if (card >= Index_MIN_CARD && card <= Index_MAX_CARD) {
 		PutStr("0 -> ");
 		PutChr(card + '0');
-		PutStr(" .\r\n");
+		PutStr("\r\n");
 		MoveCard(Index_Ant, card);
 	} else {
 		PutStr(MAG_INVALID_PARAMETER);
@@ -474,6 +475,7 @@ void StartMotorThread(void const * argument)
 		if (evt.status == osEventMessage) {
 			cmdBuf = evt.value.p;
 			cmdBuf->func(cmdBuf);
+			PutStr("OK\r\n");
 		}
 		//check received length, read UserRxBufferFS
   }
