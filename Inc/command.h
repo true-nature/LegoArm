@@ -52,18 +52,18 @@ typedef struct CommandBufferDef {
 // card position index
 typedef enum {
 	Index_Ant = 0,
-	Index_Home,
-	Index_A,
-	Index_B,
-	Index_C,
+	Index_Home = 1,
+	Index_A = 2,
+	Index_B = 3,
+	Index_C = 4,
+	Index_D = 5,
 	Index_F = Index_C,
-	Index_D,
 	Index_V = Index_D,
 	Index_MIN_CARD = Index_A,
 	Index_MAX_CARD = Index_D
 } TrayIndex;
 
-#define PWM_ARM_UP 1600
+#define PWM_ARM_UP 1500
 #define PWM_ARM_DOWN 1300
 #define SERVO_WAIT_DEFAULT_MS 400
 

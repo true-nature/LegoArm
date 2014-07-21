@@ -99,12 +99,12 @@ static const CommandOp CmdDic[] = {
 
 // PM step correspnding to TrayAngle
 static const int16_t TrayStepPos[] = {
+	-STEP_PER_30DEG,
 	0,
 	STEP_PER_30DEG, 
 	2*STEP_PER_30DEG,
 	3*STEP_PER_30DEG, 
-	4*STEP_PER_30DEG,
-	5*STEP_PER_30DEG
+	4*STEP_PER_30DEG
 };
 static int16_t currStepPos;
 
@@ -118,7 +118,6 @@ static int16_t currStepPos;
 #define OUT_POS_MIN	((VSET_MIN<<2)+1)
 #define OUT_NEG_MIN	((VSET_MIN<<2)+2)
 
-static uint8_t SubAdDataNeutral[2] = 	{I2C_SUB_CTRL, ((VSET_MIN<<2)+0)};
 #define PHASE_COUNT	4
 // [PAHSE][A/B][data]
 static const uint8_t PM_PHASE[PHASE_COUNT][2] = {
@@ -132,11 +131,12 @@ static const uint8_t PM_PHASE[PHASE_COUNT][2] = {
 	, {0,	0}
 };
 static int16_t currentPhase;
-#define INTER_PHASE_DELAY_MS	5
+#define INTER_PHASE_DELAY_MS	2
+#define INTER_STEP_DELAY_MS	2
 
 #define GPIO_PIN_VACUUM_PUMP GPIO_PIN_10
-#define VACUUM_ON_DELAY_MS 800
-#define VACUUM_OFF_DELAY_MS 400
+#define VACUUM_ON_DELAY_MS 1500
+#define VACUUM_OFF_DELAY_MS 500
 
 /**
  * @brief Set LD3 to LE10 state according to ascii code.
@@ -184,7 +184,7 @@ static void PutChr(char c)
 
 static void PutUint16(uint16_t value)
 {
-	for (int s = 28; s >= 0; s -= 4) {
+	for (int s = 12; s >= 0; s -= 4) {
 		PutChr(HexChr[0x0F & (value >> s)]);
 	}
 }
@@ -247,11 +247,8 @@ static void FaderStep(uint16_t devAddr, int16_t startPolarity)
 		if (status != HAL_OK) {
 			break;
 		}
-		taskYIELD();
+		osDelay(INTER_STEP_DELAY_MS);
 	}
-
-	HAL_I2C_Master_Transmit(&hi2c1, devAddr, SubAdDataNeutral, 2, 10);
-	osDelay(1);
 
 	// fade in
 	start = (VSET_MIN<<2);
@@ -270,7 +267,7 @@ static void FaderStep(uint16_t devAddr, int16_t startPolarity)
 		if (status != HAL_OK) {
 			break;
 		}
-		taskYIELD();
+		osDelay(INTER_STEP_DELAY_MS);
 	}
 }
 
@@ -491,9 +488,10 @@ void StartMotorThread(void const * argument)
 {
 	osEvent evt;
 	CommandBufferDef *cmdBuf;
-	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-	osDelay(500);
-	HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
+	MoveServo(PWM_ARM_UP, SERVO_WAIT_DEFAULT_MS);
+//	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+//	osDelay(500);
+//	HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
   /* Infinite loop */
   for(;;)
   {
