@@ -684,6 +684,7 @@ static uint8_t  USBD_CDC_DataOut (USBD_HandleTypeDef *pdev, uint8_t epnum)
   {
     ((USBD_CDC_ItfTypeDef *)pdev->pUserData)->Receive(hcdc->RxBuffer, &hcdc->RxLength);
     USBD_LL_PrepareReceive(pdev, epnum, hcdc->RxBuffer, hcdc->RxLength);
+
     return USBD_OK;
   }
   else

@@ -1,5 +1,5 @@
 #MicroXplorer Configuration settings - do not modify
-#Mon Jul 21 12:47:24 JST 2014
+#Fri Jul 25 08:49:35 JST 2014
 FREERTOS.IPParameters=configUSE_PREEMPTION,configTOTAL_HEAP_SIZE,configUSE_TIMERS
 FREERTOS.configTOTAL_HEAP_SIZE=4000
 FREERTOS.configUSE_PREEMPTION=1
