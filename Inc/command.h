@@ -48,7 +48,6 @@ typedef struct CommandBufferDef {
 	char *Arg;
 	void (*func)(struct CommandBufferDef *cmd);
 } CommandBufferDef;
-#define MAX_CMD_BUF_COUNT	3
 
 // card position index
 typedef enum {
